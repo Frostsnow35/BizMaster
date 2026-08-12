@@ -1,0 +1,63 @@
+name: Release
+
+# 推送 v* 标签（如 v0.1.0）时自动构建并发布 Windows 安装包
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            electron/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 构建前端
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: 构建后端 exe
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-build.txt
+          python -m PyInstaller pyinstaller.spec --noconfirm
+
+      - name: 复制后端 exe 到 Electron 资源目录
+        run: |
+          New-Item -ItemType Directory -Force -Path electron/resources/backend | Out-Null
+          Copy-Item backend/dist/backend.exe electron/resources/backend/ -Force
+
+      - name: 打包桌面应用
+        working-directory: electron
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          npm ci
+          npx electron-builder --win
+
+      - name: 上传 Release 产物
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/BizMaster-*.exe
+            release/BizMaster-*.zip
+          fail_on_unmatched_files: true
+          generate_release_notes: true
