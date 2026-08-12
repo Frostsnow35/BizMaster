@@ -1,0 +1,110 @@
+/* ── CSS 变量：轻量现代风主题（方案 B）── */
+:root {
+  /* 品牌色 */
+  --color-primary: #6366f1;
+  --color-primary-light: #818cf8;
+  --color-primary-bg: #eef2ff;
+
+  /* 强调色 */
+  --color-accent: #f59e0b;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  /* 中性色 */
+  --color-bg: #f9fafb;
+  --color-bg-card: #ffffff;
+  --color-bg-hover: #f3f4f6;
+  --color-border: #e5e7eb;
+  --color-text: #1f2937;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+
+  /* 图表色板 */
+  --chart-blue: #6366f1;
+  --chart-cyan: #06b6d4;
+  --chart-green: #10b981;
+  --chart-amber: #f59e0b;
+  --chart-pink: #ec4899;
+  --chart-purple: #8b5cf6;
+
+  /* 尺寸 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+
+  /* 字体 */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Microsoft YaHei', 'Noto Sans SC', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+}
+
+/* ── 全局重置 ── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-bg);
+  line-height: 1.6;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ── 滚动条美化 ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-text-muted);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+/* ── 覆盖 Ant Design 默认主题 ── */
+.ant-btn-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.ant-btn-primary:hover {
+  background: var(--color-primary-light) !important;
+  border-color: var(--color-primary-light) !important;
+}
+.ant-menu-item-selected {
+  background: var(--color-primary-bg) !important;
+  color: var(--color-primary) !important;
+}
+.ant-tag {
+  border-radius: var(--radius-sm);
+}
+.ant-card {
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.ant-table {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.ant-collapse {
+  border-radius: var(--radius-md);
+}

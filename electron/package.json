@@ -1,0 +1,52 @@
+{
+  "name": "bizmaster-electron",
+  "version": "0.1.0",
+  "description": "掌柜 BizMaster - 电商经营数据分析桌面应用",
+  "author": "ecommerce-data-agent",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0",
+    "concurrently": "^8.0.0",
+    "wait-on": "^7.0.0",
+    "cross-env": "^7.0.0"
+  },
+  "build": {
+    "appId": "com.bizmaster.app",
+    "productName": "BizMaster",
+    "directories": {
+      "output": "../release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "icon.ico"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/dist",
+        "to": "frontend/dist"
+      },
+      {
+        "from": "../backend/dist/",
+        "to": "backend"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "../frontend/public/icon.ico",
+      "artifactName": "BizMaster-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  }
+}

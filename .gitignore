@@ -1,0 +1,29 @@
+# ── Node ──
+node_modules/
+frontend/node_modules/
+electron/node_modules/
+frontend/dist/
+electron/.cache/
+
+# ── Python ──
+__pycache__/
+*.pyc
+.venv/
+venv/
+backend/build/
+backend/dist/
+
+# ── 打包产物 ──
+release/
+
+# ── 证书（含私钥，切勿提交）──
+certs/
+
+# ── 构建生成的资源 ──
+electron/resources/backend/backend.exe
+
+# ── 本地运行数据 ──
+data/
+backend/data/
+.env
+*.log

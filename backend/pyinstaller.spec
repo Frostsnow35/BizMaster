@@ -1,0 +1,83 @@
+# -*- mode: python ; coding: utf-8 -*-
+
+block_cipher = None
+
+a = Analysis(
+    ['app/main.py'],
+    pathex=[],
+    binaries=[],
+    datas=[
+        ('config/settings.yaml', 'config'),
+        ('../sample-data', 'sample-data'),
+    ],
+    hiddenimports=[
+        'uvicorn.logging',
+        'uvicorn.loops.auto',
+        'uvicorn.protocols.http.auto',
+        'uvicorn.protocols.websockets.auto',
+        'uvicorn.lifespan.on',
+        'fastapi',
+        'fastapi.middleware',
+        'fastapi.middleware.cors',
+        'langgraph',
+        'langgraph.graph',
+        'langgraph.checkpoint',
+        'langgraph.checkpoint.memory',
+        'langchain_core',
+        'langchain_core.messages',
+        'langchain_core.tools',
+        'pandas',
+        'openpyxl',
+        'yaml',
+        'sqlalchemy',
+        'sqlalchemy.ext.declarative',
+        'websockets',
+        'chardet',
+        'duckdb',
+    ],
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    # 项目代码未使用以下重型库（由完整 langchain 包间接引入），排除以缩减体积
+    excludes=[
+        'torch',
+        'scipy',
+        'matplotlib',
+        'numba',
+        'onnxruntime',
+        'ml_dtypes',
+        'sklearn',
+        'chromadb',
+        'IPython',
+        'jupyter',
+        'notebook',
+    ],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
+    noarchive=False,
+)
+
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    [],
+    name='backend',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    runtime_tmpdir=None,
+    console=False,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+)
