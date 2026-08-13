@@ -60,15 +60,15 @@ function ThinkingStepItem({ step, isLast }: { step: ThinkingStep; isLast: boolea
 
   return (
     <div style={{
-      display: 'flex', gap: 8, padding: '3px 0', fontSize: 12, color: '#9ca3af',
-      borderLeft: isLast ? '2px solid transparent' : '2px solid #e5e7eb',
+      display: 'flex', gap: 8, padding: '3px 0', fontSize: 12, color: '#5b6674',
+      borderLeft: isLast ? '2px solid transparent' : '2px solid #243040',
       marginLeft: 6, paddingLeft: 10, paddingBottom: isLast ? 0 : 4,
       transition: 'color 0.2s',
     }}>
-      <span style={{ marginTop: 1, color: isSuccess ? '#10b981' : '#9ca3af' }}>{icon}</span>
+      <span style={{ marginTop: 1, color: isSuccess ? '#34d399' : '#5b6674' }}>{icon}</span>
       <div style={{ flex: 1, lineHeight: '18px' }}>
-        <span style={{ color: '#bfbfbf', marginRight: 5, fontSize: 11 }}>{cfg.label}</span>
-        <span style={{ color: '#6b7280' }}>{step.content}</span>
+        <span style={{ color: '#8b96a3', marginRight: 5, fontSize: 11 }}>{cfg.label}</span>
+        <span style={{ color: '#8b96a3' }}>{step.content}</span>
       </div>
     </div>
   )
@@ -86,11 +86,11 @@ function ThinkingPanel({ steps, expanded }: { steps: ThinkingStep[]; expanded: b
       items={[{
         key: 'thinking',
         label: (
-          <span style={{ fontSize: 12, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 12, color: '#5b6674', display: 'flex', alignItems: 'center', gap: 6 }}>
             <SyncOutlined spin={!expanded} style={{ fontSize: 11 }} />
             <span>思考过程</span>
             <span style={{
-              background: '#f3f4f6', color: '#6b7280', fontSize: 10,
+              background: '#1a2330', color: '#8b96a3', fontSize: 10,
               padding: '1px 6px', borderRadius: 10, fontWeight: 500,
             }}>
               {steps.length} 步
@@ -112,8 +112,8 @@ function ThinkingPanel({ steps, expanded }: { steps: ThinkingStep[]; expanded: b
       style={{
         background: 'transparent',
         marginBottom: 8,
-        border: '1px solid #f3f4f6',
-        borderRadius: 8,
+        border: '1px solid #1a2330',
+        borderRadius: 6,
         padding: '4px 12px',
       }}
     />
@@ -152,20 +152,17 @@ function formatFilterContent(content: string, format: string): string {
   if (!content || format === 'report') return content  // report 展示全部
 
   if (format === 'bullet') {
-    // 要点：彻底去掉表格和标题，只保留列表和段落
     let filtered = stripTableLines(content)
-    filtered = filtered.replace(/^#{1,3}\s+[^\n]*\n?/gm, '')  // 去掉 # 标题行
-    filtered = filtered.replace(/\n{3,}/g, '\n\n')            // 压缩连续空行
+    filtered = filtered.replace(/^#{1,3}\s+[^\n]*\n?/gm, '')
+    filtered = filtered.replace(/\n{3,}/g, '\n\n')
     return filtered.trim()
   }
 
   if (format === 'table') {
-    // 表格：只提取 Markdown 表格行（含表头/分隔行/数据行）
     const tableLines = content.split('\n').filter(line => /^\s*\|.*\|\s*$/.test(line))
     if (tableLines.length >= 2) {
       return tableLines.join('\n')
     }
-    // 无表格时回退：取非标题、非列表的前几行
     const lines = content.split('\n')
       .filter(l => l.trim() && !l.trim().startsWith('#') && !l.trim().startsWith('- ') && !l.trim().startsWith('|'))
       .slice(0, 3)
@@ -173,7 +170,6 @@ function formatFilterContent(content: string, format: string): string {
   }
 
   if (format === 'chart') {
-    // 图表：去掉表格和标题，只保留简短文字
     let filtered = stripTableLines(content)
     filtered = filtered.replace(/^#{1,3}\s+[^\n]*\n?/gm, '')
     const lines = filtered.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 8)
@@ -193,12 +189,12 @@ function LoadingDots() {
           className="mb-pulse"
           style={{
             width: 7, height: 7, borderRadius: '50%',
-            background: '#a5b4fc',
+            background: '#60a5fa',
             animationDelay: `${i * 0.2}s`,
           }}
         />
       ))}
-      <span style={{ fontSize: 13, color: '#9ca3af', marginLeft: 4 }}>分析中...</span>
+      <span style={{ fontSize: 13, color: '#5b6674', marginLeft: 4 }}>分析中...</span>
     </div>
   )
 }
@@ -223,7 +219,6 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
       const store = useChatStore.getState()
       const sessionId = store.currentSessionId
 
-      // 后端删除
       if (message.recordId && sessionId) {
         try {
           await client.delete(`/sessions/${sessionId}/messages/${message.recordId}`)
@@ -232,7 +227,6 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
         }
       }
 
-      // 前端：找到当前消息索引，级联删除紧随的 AI 回复
       const msgs = store.messages
       const idx = msgs.findIndex((m) => m.id === message.id)
       if (idx !== -1 && idx + 1 < msgs.length) {
@@ -249,11 +243,11 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
         <div style={{
           maxWidth: '72%',
           padding: '10px 18px',
-          borderRadius: '18px 18px 4px 18px',
-          background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-          color: '#fff',
+          borderRadius: '6px 6px 0 6px',
+          background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+          color: '#ffffff',
           wordBreak: 'break-word',
-          boxShadow: '0 2px 8px rgba(99,102,241,0.25)',
+          boxShadow: '0 0 10px rgba(59,130,246,0.25)',
           fontSize: 14,
           lineHeight: 1.6,
         }}>
@@ -265,11 +259,11 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
             onClick={handleCopy}
             style={{
               cursor: 'pointer', padding: '2px 6px', borderRadius: 4,
-              fontSize: 12, color: '#9ca3af', transition: 'color 0.15s',
+              fontSize: 12, color: '#5b6674', transition: 'color 0.15s',
             }}
             title="复制"
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#6366f1' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#60a5fa' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#5b6674' }}
           >
             <CopyOutlined />
           </span>
@@ -283,11 +277,11 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
             <span
               style={{
                 cursor: 'pointer', padding: '2px 6px', borderRadius: 4,
-                fontSize: 12, color: '#9ca3af', transition: 'color 0.15s',
+                fontSize: 12, color: '#5b6674', transition: 'color 0.15s',
               }}
               title="删除"
               onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444' }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af' }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#5b6674' }}
             >
               <DeleteOutlined />
             </span>
@@ -305,22 +299,22 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
       <div style={{ maxWidth: '85%' }} className="mb-msg-enter">
         <div style={{
           padding: '16px 20px',
-          borderRadius: 12,
-          background: '#fef2f2',
-          border: '1px solid #fecaca',
+          borderRadius: 6,
+          background: '#1a1114',
+          border: '1px solid #3a2028',
           wordBreak: 'break-word',
         }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: friendly ? 10 : 0 }}>
             <ExclamationCircleOutlined style={{ color: '#ef4444', marginTop: 2, fontSize: 14 }} />
             <div style={{ flex: 1 }}>
-              <Text strong style={{ color: '#b91c1c', fontSize: 14 }}>
+              <Text strong style={{ color: '#ef4444', fontSize: 14 }}>
                 {friendly?.title || '分析过程出错'}
               </Text>
-              <div style={{ color: '#7f1d1d', fontSize: 13, lineHeight: 1.7, marginTop: 6 }}>
+              <div style={{ color: '#d5a5ae', fontSize: 13, lineHeight: 1.7, marginTop: 6 }}>
                 {friendly ? (
                   <>
                     <p style={{ margin: '0 0 8px' }}>{friendly.description}</p>
-                    <div style={{ fontSize: 12, color: '#991b1b', marginTop: 4 }}>
+                    <div style={{ fontSize: 12, color: '#c08089', marginTop: 4 }}>
                       <div style={{ fontWeight: 500, marginBottom: 4 }}>您可以：</div>
                       {friendly.suggestions.map((s, i) => (
                         <div key={i} style={{ paddingLeft: 8, marginBottom: 2 }}>
@@ -358,10 +352,10 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
       {currentFormat !== 'report' && (
       <div id={`msg-bubble-${message.id}`} style={{
         padding: '16px 20px',
-        borderRadius: 12,
-        background: '#ffffff',
-        border: '1px solid #e5e7eb',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+        borderRadius: 6,
+        background: '#111826',
+        border: '1px solid #243040',
+        boxShadow: '0 0 0 1px rgba(59,130,246,0.06)',
         wordBreak: 'break-word',
         lineHeight: 1.75,
         transition: 'box-shadow 0.2s',
@@ -371,7 +365,7 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
 
         {/* Markdown 正文：始终显示要点格式（过滤掉表格和标题） */}
         {message.content && (
-          <div style={{ fontSize: 14, color: '#1f2937' }}>
+          <div style={{ fontSize: 14, color: '#d5dbe3' }}>
             <ReactMarkdown
               components={{
                 table: ({ children }) => (
@@ -385,28 +379,28 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
                 ),
                 th: ({ children }) => (
                   <th style={{
-                    borderBottom: '2px solid #e5e7eb', padding: '8px 12px',
-                    textAlign: 'left', fontWeight: 600, color: '#374151',
-                    background: '#f9fafb',
+                    borderBottom: '2px solid #243040', padding: '8px 12px',
+                    textAlign: 'left', fontWeight: 600, color: '#8b96a3',
+                    background: '#16233a',
                   }}>
                     {children}
                   </th>
                 ),
                 td: ({ children }) => (
                   <td style={{
-                    borderBottom: '1px solid #f3f4f6', padding: '8px 12px',
-                    color: '#4b5563',
+                    borderBottom: '1px solid #243040', padding: '8px 12px',
+                    color: '#d5dbe3',
                   }}>
                     {children}
                   </td>
                 ),
                 h2: ({ children }) => (
-                  <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '16px 0 8px' }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 600, color: '#60a5fa', margin: '16px 0 8px' }}>
                     {children}
                   </h2>
                 ),
                 h3: ({ children }) => (
-                  <h3 style={{ fontSize: 14, fontWeight: 600, color: '#374151', margin: '12px 0 6px' }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: '#8b96a3', margin: '12px 0 6px' }}>
                     {children}
                   </h3>
                 ),
@@ -417,19 +411,19 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
                   <ol style={{ paddingLeft: 20, margin: '6px 0' }}>{children}</ol>
                 ),
                 li: ({ children }) => (
-                  <li style={{ marginBottom: 4, color: '#4b5563' }}>{children}</li>
+                  <li style={{ marginBottom: 4, color: '#d5dbe3' }}>{children}</li>
                 ),
                 code: ({ className, children, ...props }: any) => {
                   const isInline = !className
                   return isInline ? (
                     <code style={{
-                      background: '#f3f4f6', color: '#ef4444', padding: '1px 5px',
+                      background: '#1a2330', color: '#d4af37', padding: '1px 5px',
                       borderRadius: 4, fontSize: '0.9em',
                     }} {...props}>{children}</code>
                   ) : (
                     <code style={{
-                      display: 'block', background: '#1e1b4b', color: '#e0e7ff',
-                      padding: '12px 16px', borderRadius: 8, fontSize: 13,
+                      display: 'block', background: '#0b0f14', color: '#60a5fa',
+                      padding: '12px 16px', borderRadius: 6, fontSize: 13,
                       overflowX: 'auto', margin: '8px 0',
                     }} {...props}>{children}</code>
                   )
@@ -445,7 +439,7 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
         {isStreaming && message.content && (
           <span className="mb-blink" style={{
             display: 'inline-block', width: 7, height: 16, borderRadius: 1,
-            background: '#6366f1', marginLeft: 2, verticalAlign: 'text-bottom',
+            background: '#60a5fa', marginLeft: 2, verticalAlign: 'text-bottom',
           }} />
         )}
 
@@ -453,7 +447,7 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
         {!isStreaming && message.content && (
           <div style={{
             marginTop: 14,
-            borderTop: '1px solid #f3f4f6',
+            borderTop: '1px solid #243040',
             paddingTop: 10,
             display: 'flex',
             justifyContent: 'space-between',
@@ -486,7 +480,7 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
                         const bubble = document.getElementById(`msg-bubble-${message.id}`)
                         if (!bubble) { alert('无法找到消息内容，请刷新后重试'); return }
                         const html2canvas = (await import('html2canvas')).default
-                        const canvas = await html2canvas(bubble, { backgroundColor: '#ffffff', scale: 2, useCORS: true, allowTaint: true })
+                        const canvas = await html2canvas(bubble, { backgroundColor: '#111826', scale: 2, useCORS: true, allowTaint: true })
                         canvas.toBlob((blob) => {
                           if (!blob) { alert('图片生成失败'); return }
                           const url = URL.createObjectURL(blob)
@@ -529,8 +523,8 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
               trigger={['click']}
             >
               <button style={{
-                border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280',
-                fontSize: 11, padding: '3px 10px', borderRadius: 14, cursor: 'pointer',
+                border: '1px solid #243040', background: '#111826', color: '#8b96a3',
+                fontSize: 11, padding: '3px 10px', borderRadius: 4, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s',
               }}>
                 <DownloadOutlined style={{ fontSize: 11 }} />导出
@@ -538,7 +532,7 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
             </Dropdown>
 
             {/* 格式切换按钮组：始终可点击，缺数据时显示兜底内容 */}
-            <div style={{ display: 'flex', gap: 4, background: '#f3f4f6', borderRadius: 10, padding: 2 }}>
+            <div style={{ display: 'flex', gap: 4, background: '#16233a', borderRadius: 4, padding: 2 }}>
               {FORMAT_OPTIONS.map((opt) => {
                 const isActive = currentFormat === opt.key
 
@@ -552,12 +546,12 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
                     }}
                     style={{
                       border: 'none',
-                      background: isActive ? '#ffffff' : 'transparent',
-                      color: isActive ? '#6366f1' : '#9ca3af',
-                      fontSize: 12, padding: '4px 12px', borderRadius: 8,
+                      background: isActive ? '#3b82f6' : 'transparent',
+                      color: isActive ? '#ffffff' : '#5b6674',
+                      fontSize: 12, padding: '4px 12px', borderRadius: 4,
                       cursor: 'pointer',
                       fontWeight: isActive ? 600 : 400,
-                      boxShadow: isActive ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                      boxShadow: isActive ? '0 0 8px rgba(59,130,246,0.35)' : 'none',
                       transition: 'all 0.15s',
                     }}
                     title={`切换为${opt.label}格式`}
@@ -611,10 +605,10 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
       {/* 报告：选中「报告」时显示，优先 formatVariants，回退显示原文 */}
       {currentFormat === 'report' && (
         <div style={{
-          marginTop: 12, padding: '16px 20px', borderRadius: 12,
-          background: '#ffffff', border: '1px solid #e5e7eb',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-          fontSize: 14, color: '#1f2937', lineHeight: 1.75,
+          marginTop: 12, padding: '16px 20px', borderRadius: 6,
+          background: '#111826', border: '1px solid #243040',
+          boxShadow: '0 0 0 1px rgba(59,130,246,0.06)',
+          fontSize: 14, color: '#d5dbe3', lineHeight: 1.75,
         }}>
           {message.formatVariants?.report ? (
             <ReactMarkdown components={reportComponents}>{message.formatVariants.report}</ReactMarkdown>
@@ -635,26 +629,26 @@ function MessageBubble({ message, onChartDrilldown }: Props) {
 
 /** Markdown 渲染组件（复用于报告格式） */
 const reportComponents = {
-  h2: ({ children }: any) => <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '16px 0 8px' }}>{children}</h2>,
-  h3: ({ children }: any) => <h3 style={{ fontSize: 14, fontWeight: 600, color: '#374151', margin: '12px 0 6px' }}>{children}</h3>,
+  h2: ({ children }: any) => <h2 style={{ fontSize: 16, fontWeight: 600, color: '#60a5fa', margin: '16px 0 8px' }}>{children}</h2>,
+  h3: ({ children }: any) => <h3 style={{ fontSize: 14, fontWeight: 600, color: '#8b96a3', margin: '12px 0 6px' }}>{children}</h3>,
   ul: ({ children }: any) => <ul style={{ paddingLeft: 20, margin: '6px 0' }}>{children}</ul>,
-  li: ({ children }: any) => <li style={{ marginBottom: 4, color: '#4b5563' }}>{children}</li>,
+  li: ({ children }: any) => <li style={{ marginBottom: 4, color: '#d5dbe3' }}>{children}</li>,
   table: ({ children }: any) => (
     <div style={{ overflowX: 'auto', margin: '12px 0' }}>
       <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>{children}</table>
     </div>
   ),
-  th: ({ children }: any) => <th style={{ borderBottom: '2px solid #e5e7eb', padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: '#374151', background: '#f9fafb' }}>{children}</th>,
-  td: ({ children }: any) => <td style={{ borderBottom: '1px solid #f3f4f6', padding: '8px 12px', color: '#4b5563' }}>{children}</td>,
+  th: ({ children }: any) => <th style={{ borderBottom: '2px solid #243040', padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: '#8b96a3', background: '#16233a' }}>{children}</th>,
+  td: ({ children }: any) => <td style={{ borderBottom: '1px solid #243040', padding: '8px 12px', color: '#d5dbe3' }}>{children}</td>,
 }
 
 /** 格式缺数据时的兜底提示卡片 */
 function FallbackFormatCard({ icon, text }: { icon: string; text: string }) {
   return (
     <div style={{
-      padding: '28px 20px', borderRadius: 12,
-      background: '#fafafa', border: '1px dashed #d1d5db',
-      textAlign: 'center', color: '#9ca3af', fontSize: 13,
+      padding: '28px 20px', borderRadius: 6,
+      background: '#111826', border: '1px dashed #243040',
+      textAlign: 'center', color: '#5b6674', fontSize: 13,
     }}>
       <div style={{ fontSize: 32, marginBottom: 8 }}>{icon}</div>
       <div>{text}</div>
@@ -668,12 +662,10 @@ function FallbackTableFromMarkdown({ content }: { content: string }) {
     return <FallbackFormatCard icon="📋" text="该分析结果未包含表格数据" />
   }
 
-  // 从内容中提取 Markdown 表格
   const lines = content.split('\n')
   const tableLines = lines.filter((l) => /^\s*\|.*\|\s*$/.test(l.trim()))
 
   if (tableLines.length < 2) {
-    // 尝试显示带逗号分隔的数据行作为简单表格
     const dataLines = lines.filter((l) => {
       const t = l.trim()
       return t && !t.startsWith('#') && !t.startsWith('-') && t.includes(',') && !t.startsWith('|')
@@ -683,9 +675,9 @@ function FallbackTableFromMarkdown({ content }: { content: string }) {
     }
     return (
       <div style={{
-        padding: '12px 16px', borderRadius: 8,
-        background: '#fafafa', border: '1px solid #e5e7eb',
-        fontSize: 12, color: '#6b7280', whiteSpace: 'pre-wrap',
+        padding: '12px 16px', borderRadius: 6,
+        background: '#111826', border: '1px solid #243040',
+        fontSize: 12, color: '#8b96a3', whiteSpace: 'pre-wrap',
         fontFamily: 'monospace',
       }}>
         {dataLines.join('\n')}
@@ -697,8 +689,8 @@ function FallbackTableFromMarkdown({ content }: { content: string }) {
     <div style={{ overflowX: 'auto', padding: '4px 0' }}>
       <table style={{
         borderCollapse: 'collapse', width: '100%', fontSize: 12,
-        background: '#fff', borderRadius: 8, overflow: 'hidden',
-        border: '1px solid #e5e7eb',
+        background: '#111826', borderRadius: 6, overflow: 'hidden',
+        border: '1px solid #243040',
       }}>
         <tbody>
           {tableLines.map((line, i) => {
@@ -707,7 +699,7 @@ function FallbackTableFromMarkdown({ content }: { content: string }) {
             if (isSep) return null
             const CellTag = i === 0 ? 'th' : 'td'
             return (
-              <tr key={i} style={{ borderBottom: i === 0 ? '2px solid #e5e7eb' : '1px solid #f3f4f6' }}>
+              <tr key={i} style={{ borderBottom: i === 0 ? '2px solid #243040' : '1px solid #243040' }}>
                 {cells.map((cell, j) => (
                   <CellTag
                     key={j}
@@ -715,8 +707,8 @@ function FallbackTableFromMarkdown({ content }: { content: string }) {
                       padding: '6px 10px',
                       textAlign: 'left',
                       fontWeight: i === 0 ? 600 : 400,
-                      color: i === 0 ? '#374151' : '#4b5563',
-                      background: i === 0 ? '#f9fafb' : 'transparent',
+                      color: i === 0 ? '#8b96a3' : '#d5dbe3',
+                      background: i === 0 ? '#16233a' : 'transparent',
                       whiteSpace: 'nowrap',
                     }}
                   >

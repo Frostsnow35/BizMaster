@@ -50,15 +50,15 @@ function FeedbackButtons({ messageId, sessionId: _sessionId }: Props) {
   }, [messageId, feedback])
 
   return (
-    <div style={{ display: 'flex', gap: 2, marginTop: 10, paddingTop: 6, borderTop: '1px solid #f3f4f6' }}>
+    <div style={{ display: 'flex', gap: 2, marginTop: 10, paddingTop: 6, borderTop: '1px solid #243040' }}>
       <Tooltip title={feedback === 'like' ? '取消' : '回答有帮助'}>
         <span
           onClick={handleLike}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             padding: '2px 8px', borderRadius: 6, cursor: 'pointer',
-            fontSize: 12, color: feedback === 'like' ? '#6366f1' : '#9ca3af',
-            background: feedback === 'like' ? '#f0f5ff' : 'transparent',
+            fontSize: 12, color: feedback === 'like' ? '#3b82f6' : '#5b6674',
+            background: feedback === 'like' ? '#16233a' : 'transparent',
             transition: 'all 0.15s',
             userSelect: 'none',
           }}
@@ -72,8 +72,8 @@ function FeedbackButtons({ messageId, sessionId: _sessionId }: Props) {
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             padding: '2px 8px', borderRadius: 6, cursor: 'pointer',
-            fontSize: 12, color: feedback === 'dislike' ? '#ef4444' : '#9ca3af',
-            background: feedback === 'dislike' ? '#fef2f2' : 'transparent',
+            fontSize: 12, color: feedback === 'dislike' ? '#ef4444' : '#5b6674',
+            background: feedback === 'dislike' ? '#2a1a1a' : 'transparent',
             transition: 'all 0.15s',
             userSelect: 'none',
           }}

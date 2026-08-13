@@ -125,18 +125,12 @@ function SettingsPage() {
 
       <Card styles={{ body: { padding: 24 } }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <InfoCircleOutlined style={{ color: '#6366f1' }} />
+          <InfoCircleOutlined style={{ color: '#3b82f6' }} />
           <Text strong>关于</Text>
         </div>
         <Divider style={{ margin: '8px 0 16px' }} />
-        <div style={{ color: '#6b7280', lineHeight: 2 }}>
-          掌柜 BizMaster v0.1.0 · 电商经营数据分析
-          <br />
-          面向中小电商商家的自助经营数据分析工具
-          <br />
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            FastAPI + LangGraph + React + DeepSeek
-          </Text>
+        <div style={{ color: '#8b96a3', lineHeight: 1.8 }}>
+          掌柜 BizMaster v0.1.0，中小电商的一站式经营数据分析伙伴。
         </div>
       </Card>
     </div>

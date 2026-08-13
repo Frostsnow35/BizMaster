@@ -67,6 +67,7 @@ async def chat_websocket(websocket: WebSocket):
                 question = msg.get("content", "")
                 data_source_id = msg.get("data_source_id", "")
                 join_data_source_ids: list[str] = msg.get("join_data_source_ids", []) or []
+                role_key = msg.get("role_key", "auto") or "auto"
 
                 # data_source_id 省略时自动沿用上次激活的数据源
                 if not data_source_id:
@@ -108,6 +109,7 @@ async def chat_websocket(websocket: WebSocket):
                     current_state["config"] = {"configurable": {"thread_id": session_id}}
 
                 current_state["data_source_id"] = data_source_id
+                current_state["role_key"] = role_key
 
                 try:
                     # 流式运行 Agent
@@ -388,6 +390,7 @@ async def _handle_reformat(websocket: WebSocket, session_id: str, current_state:
             final_response=None,
             charts=None,
             tables=None,
+            role_key=current_state.get("role_key"),
         )
 
     await websocket.send_json({

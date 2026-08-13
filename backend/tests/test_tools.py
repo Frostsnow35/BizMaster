@@ -110,3 +110,27 @@ class TestVisualization:
         assert option["series"][0]["type"] == "pie"
         assert "data" in option["series"][0]
         assert len(option["series"][0]["data"]) == 5, f"饼图数据应为5项（原始行数），实际{len(option['series'][0]['data'])}项"
+
+    def test_funnel_chart(self, sample_df):
+        from app.agent.tools.visualization import _build_funnel_chart
+        option = _build_funnel_chart(sample_df, "品类", "金额", "转化漏斗")
+        assert option["series"][0]["type"] == "funnel"
+        assert len(option["series"][0]["data"]) > 0
+
+    def test_radar_chart(self, sample_df):
+        from app.agent.tools.visualization import _build_radar_chart
+        option = _build_radar_chart(sample_df, "品类", "金额", "多维画像")
+        assert option["series"][0]["type"] == "radar"
+        assert "indicator" in option["radar"]
+
+    def test_heatmap_chart(self, sample_df):
+        from app.agent.tools.visualization import _build_heatmap_chart
+        option = _build_heatmap_chart(sample_df, "品类", "下单日期", "金额", "交叉热力图")
+        assert option["series"][0]["type"] == "heatmap"
+        assert len(option["series"][0]["data"]) > 0
+
+    def test_waterfall_chart(self, sample_df):
+        from app.agent.tools.visualization import _build_waterfall_chart
+        option = _build_waterfall_chart(sample_df, "品类", "金额", "瀑布图")
+        assert option["series"][0]["type"] == "bar"
+        assert option["series"][1]["type"] == "bar"

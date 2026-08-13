@@ -11,6 +11,7 @@ from langchain_core.messages import AIMessage
 from app.agent.state import AgentState, format_context_for_prompt, update_context_memory
 from app.agent.prompts.responder_prompt import RESPONDER_SYSTEM_PROMPT
 from app.agent.anomaly import detect_anomalies
+from app.agent.roles import get_role
 from app.core.llm import get_llm
 
 PLACEHOLDER_PATTERNS = [
@@ -67,6 +68,16 @@ async def responder_node(state: AgentState, format_override: str | None = None) 
             f"\n\n## 用户指定格式\n"
             f"用户明确要求以「{fmt_label}」形式输出。本次回答必须完全遵循该格式，"
             f"并在回答末尾嵌入 [FORMAT:{format_override}] 标记。"
+        )
+
+    # 注入角色人格提示词（多角色分析引擎）
+    role_key = state.get("role_key")
+    role = get_role(role_key)
+    if role and role.get("persona"):
+        system_prompt += (
+            f"\n\n## 当前分析角色：{role['name']}\n"
+            f"{role['persona']}\n"
+            f"请在保持上述输出格式约束的前提下，以「{role['name']}」的视角完成分析。"
         )
 
     # 统计成败

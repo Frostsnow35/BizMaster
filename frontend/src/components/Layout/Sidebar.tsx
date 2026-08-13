@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Layout, Menu, Button, message } from 'antd'
-import { MessageOutlined, DatabaseOutlined, SettingOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
+import { MessageOutlined, DatabaseOutlined, SettingOutlined, ScheduleOutlined, PlusOutlined, DeleteOutlined, BarChartOutlined, LineChartOutlined } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 import client from '../../api/client'
 import Logo from './Logo'
@@ -14,12 +14,12 @@ interface Session {
   created_at: string
 }
 
-/* ── 侧边栏品牌色（深靛蓝）── */
-const SIDEBAR_BG = '#111827'
-const SIDEBAR_TEXT = '#e5e7eb'
-const SIDEBAR_TEXT_DIM = '#9ca3af'
-const SIDEBAR_HOVER = 'rgba(99,102,241,0.15)'
-const SIDEBAR_ACTIVE = 'rgba(99,102,241,0.25)'
+/* ── 侧边栏品牌色（暗黑蓝 + 复古辉光）── */
+const SIDEBAR_BG = '#0b0f14'
+const SIDEBAR_TEXT = '#d5dbe3'
+const SIDEBAR_TEXT_DIM = '#5b6674'
+const SIDEBAR_HOVER = 'rgba(59,130,246,0.12)'
+const SIDEBAR_ACTIVE = 'rgba(59,130,246,0.20)'
 
 function Sidebar() {
   const navigate = useNavigate()
@@ -29,23 +29,6 @@ function Sidebar() {
   const currentSessionId = location.pathname.startsWith('/chat/')
     ? location.pathname.split('/chat/')[1]
     : null
-
-  /* 修复 Ant Design Sider 内部容器变白 */
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const el = document.querySelector('.ant-layout-sider') as HTMLElement | null
-      if (el) {
-        el.style.setProperty('background', SIDEBAR_BG, 'important')
-        const children = el.querySelector('.ant-layout-sider-children') as HTMLElement | null
-        if (children && children.style.background !== SIDEBAR_BG) {
-          children.style.setProperty('background', SIDEBAR_BG, 'important')
-          children.style.setProperty('height', '100vh', 'important')
-          children.style.setProperty('overflow', 'hidden', 'important')
-        }
-      }
-    }, 500)
-    return () => clearInterval(timer)
-  }, [])
 
   const fetchSessions = async () => {
     try {
@@ -98,16 +81,16 @@ function Sidebar() {
           justifyContent: collapsed ? 'center' : 'flex-start',
           gap: collapsed ? 0 : 10,
           paddingLeft: collapsed ? 0 : 20,
-          color: '#fff',
+          color: '#d4af37',
           fontSize: collapsed ? 18 : 16,
           fontWeight: 700,
           cursor: 'pointer',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: '1px solid rgba(59,130,246,0.15)',
         }}
         onClick={handleNewChat}
       >
         <Logo size={32} />
-        {!collapsed && <span style={{ letterSpacing: 0.5 }}>电商分析</span>}
+        {!collapsed && <span className="gold-text" style={{ letterSpacing: 0.5 }}>掌柜 BizMaster</span>}
       </div>
 
       {/* 主导航 */}
@@ -118,7 +101,10 @@ function Sidebar() {
         theme="dark"
         items={[
           { key: '/chat', icon: <MessageOutlined />, label: '智能分析' },
+          { key: '/dashboard', icon: <BarChartOutlined />, label: '数据看板' },
+          { key: '/forecast', icon: <LineChartOutlined />, label: '预测分析' },
           { key: '/data', icon: <DatabaseOutlined />, label: '数据管理' },
+          { key: '/reports', icon: <ScheduleOutlined />, label: '定时报告' },
           { key: '/settings', icon: <SettingOutlined />, label: '系统设置' },
         ]}
         onClick={({ key }) => {

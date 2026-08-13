@@ -8,7 +8,7 @@ interface Props {
 
 /**
  * 电商分析 Logo：几何化数据柱状图 + AI 星芒
- * 尺寸 32x32，用渐变描边 + 半透明填充
+ * 尺寸 32x32，深蓝渐变描边 + 半透明填充
  */
 function Logo({ size = 32, style, className }: Props) {
   return (
@@ -23,21 +23,21 @@ function Logo({ size = 32, style, className }: Props) {
     >
       <defs>
         <linearGradient id="lg-bar" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#6366f1" />
-          <stop offset="1" stopColor="#8b5cf6" />
+          <stop stopColor="#3b82f6" />
+          <stop offset="1" stopColor="#22d3ee" />
         </linearGradient>
         <linearGradient id="lg-spark" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#a78bfa" />
-          <stop offset="1" stopColor="#f472b6" />
+          <stop stopColor="#d4af37" />
+          <stop offset="1" stopColor="#e6c56b" />
         </linearGradient>
       </defs>
 
       {/* 外框圆角矩形 */}
       <rect
-        x="2" y="2" width="44" height="44" rx="10"
+        x="2" y="2" width="44" height="44" rx="6"
         stroke="url(#lg-bar)"
         strokeWidth="1.5"
-        fill="rgba(99,102,241,0.1)"
+        fill="rgba(59,130,246,0.10)"
       />
 
       {/* 柱状图 - 三根柱 */}

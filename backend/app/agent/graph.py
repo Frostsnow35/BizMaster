@@ -26,6 +26,7 @@ from app.agent.nodes.executor import executor_node
 from app.agent.nodes.reflector import reflector_node
 from app.agent.nodes.human_check import human_check_node
 from app.agent.nodes.responder import responder_node
+from app.agent.roles import resolve_role_key
 
 
 def _should_continue_after_reflection(state: AgentState) -> str:
@@ -133,6 +134,7 @@ async def run_agent(
     context_memory: list | None = None,
     active_data_source_id: str | None = None,
     join_data_source_ids: list[str] | None = None,  # 关联数据源 ID 列表（多选时传入）
+    role_key: str = "auto",  # 分析角色键，auto 表示自动推断
 ) -> AsyncIterator[Dict[str, Any]]:
     """
     @brief 流式运行 Agent 状态图
@@ -150,6 +152,8 @@ async def run_agent(
     @param resume_mode 是否为恢复执行模式
     @param context_memory 上下文记忆（追问时传入）
     @param active_data_source_id 激活的数据源 ID（追问时传入）
+    @param join_data_source_ids 关联数据源 ID 列表（多选时传入）
+    @param role_key 分析角色键，auto 表示自动推断
     @yield 状态变更事件
     """
     if graph is None:
@@ -165,6 +169,7 @@ async def run_agent(
             data_summary=data_summary,
             context_memory=context_memory,
             active_data_source_id=active_data_source_id,
+            role_key=resolve_role_key(role_key, question),
         )
         stream_input = initial_state
     else:

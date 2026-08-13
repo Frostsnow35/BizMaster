@@ -63,6 +63,9 @@ class AgentState(TypedDict, total=False):
     # 异常检测
     anomaly_alerts: List[Dict[str, Any]]  # 异常检测结果列表
 
+    # 角色相关
+    role_key: Optional[str]  # 当前分析角色键（data_analyst / operations_analyst / finance_analyst）
+
     # 人类干预相关
     need_human_approval: bool  # 是否需要人工审批
     human_approval_result: Optional[str]  # 人工审批结果: "approved" / "rejected"
@@ -81,6 +84,7 @@ def create_initial_state(
     data_summary: Optional[str] = None,
     context_memory: Optional[List[Dict[str, Any]]] = None,
     active_data_source_id: Optional[str] = None,
+    role_key: Optional[str] = None,
 ) -> AgentState:
     """
     @brief 创建初始 AgentState
@@ -89,6 +93,7 @@ def create_initial_state(
     @param data_summary 数据源概要（可选）
     @param context_memory 上下文记忆（可选，追问时传入）
     @param active_data_source_id 激活的数据源 ID（可选，追问时传入）
+    @param role_key 分析角色键（可选，已归一化后的角色键）
     @return 初始化的 AgentState
     """
     from langchain_core.messages import HumanMessage
@@ -99,6 +104,7 @@ def create_initial_state(
         data_summary=data_summary,
         context_memory=context_memory or [],
         active_data_source_id=active_data_source_id or data_source_id,
+        role_key=role_key,
         plan=[],
         current_step_index=0,
         tool_results=[],

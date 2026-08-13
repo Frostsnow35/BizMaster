@@ -1,18 +1,27 @@
 import { useRef, useEffect, useState, useMemo, useCallback } from 'react'
-import { Input, Button, Select, Tooltip, Tag, Modal, Checkbox, Typography, Space, message } from 'antd'
+import { Input, Button, Select, Tooltip, Tag, Modal, Checkbox, Typography, Space, message, Dropdown } from 'antd'
 import { SendOutlined, ThunderboltOutlined, DownloadOutlined, InfoCircleOutlined, ExclamationCircleOutlined, CloseOutlined, FilePdfOutlined, StarOutlined, StarFilled } from '@ant-design/icons'
 import MessageBubble from './MessageBubble'
 import ApprovalModal from '../HumanCheckpoint/ApprovalModal'
 import OnboardingGuide from './OnboardingGuide'
 import { useChat } from '../../hooks/useChat'
 import { useAnalysisTemplates } from '../../hooks/useAnalysisTemplates'
-import type { DataSourceInfo } from '../../api/types'
+import client from '../../api/client'
+import type { DataSourceInfo, PresetTemplate } from '../../api/types'
 import type { TableCandidate } from '../../store/chatStore'
 import { useChatStore } from '../../store/chatStore'
 import { exportPdfReport } from '../../utils/generateReport'
 
 const { TextArea } = Input
 const { Text, Paragraph } = Typography
+
+/* 分析角色选项（自动匹配 + 三个专业分析师） */
+const ROLE_OPTIONS = [
+  { value: 'auto', label: '自动匹配角色' },
+  { value: 'data_analyst', label: '数据分析师' },
+  { value: 'operations_analyst', label: '电商运营专家' },
+  { value: 'finance_analyst', label: '财务经营分析师' },
+]
 
 interface Props {
   dataSources: DataSourceInfo[]
@@ -51,6 +60,8 @@ function suggestQuestions(name: string, cols: { name: string; dtype: string }[])
 function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props) {
   const [inputValue, setInputValue] = useState(prefilledQuestion || '')
   const [selectedDsIds, setSelectedDsIds] = useState<string[]>(prefilledDsId ? [prefilledDsId] : [])
+  const [role, setRole] = useState<string>('auto')
+  const [presets, setPresets] = useState<PresetTemplate[]>([])
   const [onboardingDataSources, setOnboardingDataSources] = useState<DataSourceInfo[]>([])
   const listRef = useRef<HTMLDivElement>(null)
   const { sendMessage, messages, isStreaming, approveCheckpoint, checkpoint, tableConfirm, approveTableConfirm, rejectTableConfirm } = useChat()
@@ -86,10 +97,10 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
     sendMessage(sampleQuestion, dsInfo.id)
   }, [sendMessage])
 
-  // 从其他页面跳转过来时，自动发起分析
+  // 从其他页面跳转过来时，自动发起分析（默认自动匹配角色）
   useEffect(() => {
     if (prefilledDsId && prefilledQuestion && messages.length === 0) {
-      sendMessage(prefilledQuestion, prefilledDsId)
+      sendMessage(prefilledQuestion, prefilledDsId, undefined, 'auto')
     }
   }, [])
 
@@ -100,10 +111,34 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
     }
   }, [messages])
 
+  // 拉取一键分析预设模板
+  useEffect(() => {
+    client.get<PresetTemplate[]>('/templates')
+      .then(({ data }) => setPresets(Array.isArray(data) ? data : []))
+      .catch(() => { /* 模板拉取失败不阻塞主流程 */ })
+  }, [])
+
   const handleSend = () => {
     if (!inputValue.trim() || selectedDsIds.length === 0) return
-    sendMessage(inputValue.trim(), selectedDsIds[0], selectedDsIds.slice(1))
+    sendMessage(inputValue.trim(), selectedDsIds[0], selectedDsIds.slice(1), role)
     setInputValue('')
+  }
+
+  // 点击一键分析模板：自动选中数据源 + 设置角色 + 发起分析
+  const handleTemplateClick = (tpl: PresetTemplate) => {
+    if (isStreaming) return
+    const ds = selectedDsIds[0]
+      ? effectiveDataSources.find((d) => d.id === selectedDsIds[0])
+      : effectiveDataSources[0]
+    if (!ds) {
+      message.warning('请先上传或加载示例数据')
+      return
+    }
+    const roleKey = tpl.role_key || 'auto'
+    setSelectedDsIds([ds.id])
+    setRole(roleKey)
+    setInputValue(tpl.question)
+    sendMessage(tpl.question, ds.id, undefined, roleKey)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -177,7 +212,7 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
   const handleChartDrilldown = (params: { category: string; value: number; chartType: string; title?: string }) => {
     if (selectedDsIds.length === 0 || isStreaming) return
     const question = `请展示「${params.category}」的详细明细数据，包含所有字段`
-    sendMessage(question, selectedDsIds[0], selectedDsIds.slice(1))
+    sendMessage(question, selectedDsIds[0], selectedDsIds.slice(1), role)
   }
 
   // 建议问题
@@ -223,16 +258,16 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
         {/* 历史对话提示横幅 */}
         {isHistory && messages.length > 0 && (
           <div style={{
-            background: 'linear-gradient(135deg, #eff6ff, #f0f5ff)',
-            border: '1px solid #bfdbfe',
-            borderRadius: 8,
+            background: 'linear-gradient(135deg, #16233a, #1a2330)',
+            border: '1px solid #243040',
+            borderRadius: 6,
             padding: '8px 16px',
             margin: '0 0 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             fontSize: 13,
-            color: '#3b82f6',
+            color: '#60a5fa',
           }}>
             <span>
               <InfoCircleOutlined style={{ marginRight: 6 }} />
@@ -242,7 +277,7 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
               size="small"
               type="link"
               onClick={() => window.location.href = '/chat'}
-              style={{ color: '#6366f1', fontSize: 12 }}
+              style={{ color: '#60a5fa', fontSize: 12 }}
             >
               新建对话
             </Button>
@@ -256,36 +291,36 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
               alignItems: 'center',
               justifyContent: 'center',
               height: '100%',
-              color: '#9ca3af',
+              color: '#5b6674',
             }}
           >
-            <ThunderboltOutlined style={{ fontSize: 48, color: '#c7d2fe', marginBottom: 20 }} />
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#111827', marginBottom: 8 }}>
+            <ThunderboltOutlined style={{ fontSize: 48, color: '#60a5fa', marginBottom: 20 }} />
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#d5dbe3', marginBottom: 8 }}>
               开始智能分析
             </div>
-            <div style={{ fontSize: 13, color: '#9ca3af', marginBottom: 28 }}>
+            <div style={{ fontSize: 13, color: '#5b6674', marginBottom: 28 }}>
               选择数据源，输入你的分析问题
             </div>
             <div style={{ width: 520, maxWidth: '90vw' }}>
               <div style={{
                 display: 'flex', gap: 8, alignItems: 'flex-end',
                 padding: '6px',
-                background: '#ffffff',
-                border: '1px solid #e5e7eb',
-                borderRadius: 16,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                background: '#111826',
+                border: '1px solid #243040',
+                borderRadius: 8,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
                 transition: 'border-color 0.2s, box-shadow 0.2s',
                 marginBottom: 12,
               }}
                 onFocusCapture={(e) => {
                   const target = e.currentTarget as HTMLElement
-                  target.style.borderColor = '#6366f1'
-                  target.style.boxShadow = '0 2px 12px rgba(99,102,241,0.12)'
+                  target.style.borderColor = '#3b82f6'
+                  target.style.boxShadow = '0 4px 16px rgba(59,130,246,0.15)'
                 }}
                 onBlurCapture={(e) => {
                   const target = e.currentTarget as HTMLElement
-                  target.style.borderColor = '#e5e7eb'
-                  target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'
+                  target.style.borderColor = '#243040'
+                  target.style.boxShadow = '0 4px 16px rgba(0,0,0,0.3)'
                 }}
               >
                 <Select
@@ -302,7 +337,15 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
                     value: ds.id,
                   }))}
                 />
-                <div style={{ width: 1, height: 22, background: '#e5e7eb', alignSelf: 'center' }} />
+                <div style={{ width: 1, height: 22, background: '#243040', alignSelf: 'center' }} />
+                <Select
+                  value={role}
+                  onChange={setRole}
+                  options={ROLE_OPTIONS}
+                  variant="borderless"
+                  popupMatchSelectWidth={false}
+                  style={{ minWidth: 120, maxWidth: 150, fontSize: 13 }}
+                />
                 <TextArea
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
@@ -325,30 +368,30 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
                   loading={isStreaming}
                   disabled={!inputValue.trim() || selectedDsIds.length === 0}
                   style={{
-                    borderRadius: 12, minWidth: 38, height: 38,
-                    background: (!inputValue.trim() || selectedDsIds.length === 0) ? '#d1d5db' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                    borderRadius: 8, minWidth: 38, height: 38,
+                    background: (!inputValue.trim() || selectedDsIds.length === 0) ? '#243040' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
                     border: 'none',
-                    boxShadow: (!inputValue.trim() || selectedDsIds.length === 0) ? 'none' : '0 2px 6px rgba(99,102,241,0.3)',
+                    boxShadow: (!inputValue.trim() || selectedDsIds.length === 0) ? 'none' : '0 2px 6px rgba(59,130,246,0.3)',
                   }}
                 />
               </div>
               {/* 数据源详情引导 */}
               {primaryDs && (
                 <div style={{
-                  background: '#f0f5ff',
-                  borderRadius: 8,
+                  background: '#16233a',
+                  borderRadius: 6,
                   padding: 12,
                   marginBottom: 12,
                   textAlign: 'left',
                 }}>
-                  <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, color: '#8b96a3', marginBottom: 6 }}>
                     <InfoCircleOutlined /> 数据结构
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
                     {(primaryDs.columns_meta || []).slice(0, 6).map((col, i) => (
                       <Tag key={i} color="blue" style={{ fontSize: 11 }}>
                         {col.name}
-                        <span style={{ color: '#8c8c8c', marginLeft: 2 }}>({col.dtype})</span>
+                        <span style={{ color: '#8b96a3', marginLeft: 2 }}>({col.dtype})</span>
                       </Tag>
                     ))}
                     {(primaryDs.columns_meta || []).length > 6 && (
@@ -356,14 +399,14 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
                     )}
                   </div>
                   {primaryDs.columns_meta && primaryDs.columns_meta.length > 0 && (
-                    <div style={{ fontSize: 12, color: '#6b7280' }}>
+                    <div style={{ fontSize: 12, color: '#8b96a3' }}>
                       试试问：
                       {suggestQuestions(primaryDs.name, primaryDs.columns_meta).map((q, i) => (
                         <div
                           key={i}
                           style={{
                             cursor: 'pointer',
-                            color: '#1677ff',
+                            color: '#60a5fa',
                             marginTop: 4,
                             textDecoration: 'none',
                           }}
@@ -379,6 +422,55 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
                 </div>
               )}
             </div>
+
+            {/* 一键分析模板 */}
+            {effectiveDataSources.length > 0 && presets.length > 0 && (
+              <div style={{ width: 680, maxWidth: '90vw', marginTop: 8 }}>
+                <div style={{ textAlign: 'center', fontSize: 13, color: '#5b6674', marginBottom: 14 }}>
+                  <ThunderboltOutlined style={{ color: '#60a5fa', marginRight: 6 }} />
+                  或选择一键分析模板
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+                  {presets.map((tpl) => {
+                    const roleLabel = ROLE_OPTIONS.find((o) => o.value === tpl.role_key)?.label || '自动匹配'
+                    return (
+                      <div
+                        key={tpl.id}
+                        onClick={() => handleTemplateClick(tpl)}
+                        style={{
+                          width: 160,
+                          padding: '14px 14px',
+                          background: '#111826',
+                          border: '1px solid #243040',
+                          borderRadius: 8,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = '#3b82f6'
+                          e.currentTarget.style.boxShadow = '0 4px 16px rgba(59,130,246,0.15)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = '#243040'
+                          e.currentTarget.style.boxShadow = 'none'
+                        }}
+                      >
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#d5dbe3', marginBottom: 4 }}>
+                          {tpl.name}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#8b96a3', lineHeight: 1.5, minHeight: 34 }}>
+                          {tpl.description}
+                        </div>
+                        <div style={{ marginTop: 8, fontSize: 11, color: '#60a5fa' }}>
+                          {roleLabel}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           messages.map((msg) => (
@@ -394,16 +486,16 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
       {/* 输入区域（仅在有消息时显示底部固定输入区，历史模式禁用） */}
       {messages.length > 0 && !isHistory && (
         <div style={{
-          borderTop: '1px solid #f3f4f6',
+          borderTop: '1px solid #243040',
           padding: '16px 0 4px',
-          background: '#ffffff',
+          background: '#0b0f14',
         }}>
           <div style={{ maxWidth: 800, margin: '0 auto' }}>
             {/* 已选数据源标签 */}
             {selectedDsIds.length > 0 && (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                marginBottom: 8, fontSize: 12, color: '#6b7280', flexWrap: 'wrap',
+                marginBottom: 8, fontSize: 12, color: '#8b96a3', flexWrap: 'wrap',
               }}>
                 <span>数据源：</span>
                 {selectedDsIds.map((id, idx) => {
@@ -416,7 +508,7 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
                       closeIcon={<CloseOutlined style={{ fontSize: 10 }} />}
                       onClose={() => setSelectedDsIds((prev) => prev.filter((x) => x !== id))}
                       style={{
-                        margin: 0, borderRadius: 6,
+                        margin: 0, borderRadius: 4,
                         padding: '2px 8px', fontSize: 12,
                       }}
                     >
@@ -437,29 +529,69 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
                       type="default"
                       onClick={() => setInputValue(q)}
                       style={{
-                        borderRadius: 14,
+                        borderRadius: 6,
                         fontSize: 11,
-                        borderColor: '#e5e7eb',
-                        color: '#6b7280',
-                        background: '#fafafa',
+                        borderColor: '#243040',
+                        color: '#8b96a3',
+                        background: '#111826',
                         padding: '0 10px',
                         height: 26,
                         transition: 'all 0.15s',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = '#6366f1'
-                        e.currentTarget.style.color = '#6366f1'
-                        e.currentTarget.style.background = '#f5f3ff'
+                        e.currentTarget.style.borderColor = '#3b82f6'
+                        e.currentTarget.style.color = '#60a5fa'
+                        e.currentTarget.style.background = '#16233a'
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = '#e5e7eb'
-                        e.currentTarget.style.color = '#6b7280'
-                        e.currentTarget.style.background = '#fafafa'
+                        e.currentTarget.style.borderColor = '#243040'
+                        e.currentTarget.style.color = '#8b96a3'
+                        e.currentTarget.style.background = '#111826'
                       }}
                     >
                       {q}
                     </Button>
                   ))}
+                  {/* 一键模板下拉 */}
+                  {presets.length > 0 && (
+                    <Dropdown
+                      trigger={['click']}
+                      menu={{
+                        items: presets.map((tpl) => ({
+                          key: tpl.id,
+                          label: (
+                            <span>
+                              <span style={{ fontWeight: 600 }}>{tpl.name}</span>
+                              <span style={{ marginLeft: 8, fontSize: 11, color: '#60a5fa' }}>
+                                {ROLE_OPTIONS.find((o) => o.value === tpl.role_key)?.label || '自动匹配'}
+                              </span>
+                            </span>
+                          ),
+                        })),
+                        onClick: ({ key }) => {
+                          const tpl = presets.find((t) => t.id === key)
+                          if (tpl) handleTemplateClick(tpl)
+                        },
+                      }}
+                    >
+                      <Button
+                        size="small"
+                        type="default"
+                        icon={<ThunderboltOutlined />}
+                        style={{
+                          borderRadius: 6,
+                          fontSize: 11,
+                          borderColor: '#d4af37',
+                          color: '#d4af37',
+                          background: '#16233a',
+                          padding: '0 10px',
+                          height: 26,
+                        }}
+                      >
+                        一键模板
+                      </Button>
+                    </Dropdown>
+                  )}
                   {/* 我的模板 */}
                   {templates.map((t) => (
                     <Tooltip key={t.id} title="点击删除">
@@ -474,16 +606,16 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
                           }
                         }}
                         style={{
-                          borderRadius: 14,
+                          borderRadius: 6,
                           fontSize: 11,
-                          borderColor: '#fbbf24',
-                          color: '#92400e',
-                          background: '#fffbeb',
+                          borderColor: '#d4af37',
+                          color: '#d4af37',
+                          background: '#16233a',
                           padding: '0 10px',
                           height: 26,
                         }}
                       >
-                        <StarFilled style={{ fontSize: 10, marginRight: 2, color: '#f59e0b' }} />
+                        <StarFilled style={{ fontSize: 10, marginRight: 2, color: '#d4af37' }} />
                         {t.label}
                       </Button>
                     </Tooltip>
@@ -513,23 +645,32 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
             <div style={{
               display: 'flex', gap: 8, alignItems: 'flex-end',
               padding: '6px',
-              background: '#ffffff',
-              border: '1px solid #e5e7eb',
-              borderRadius: 16,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+              background: '#111826',
+              border: '1px solid #243040',
+              borderRadius: 8,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
               transition: 'border-color 0.2s, box-shadow 0.2s',
             }}
               onFocusCapture={(e) => {
                 const target = e.currentTarget as HTMLElement
-                target.style.borderColor = '#6366f1'
-                target.style.boxShadow = '0 2px 12px rgba(99,102,241,0.12)'
+                target.style.borderColor = '#3b82f6'
+                target.style.boxShadow = '0 4px 16px rgba(59,130,246,0.15)'
               }}
               onBlurCapture={(e) => {
                 const target = e.currentTarget as HTMLElement
-                target.style.borderColor = '#e5e7eb'
-                target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'
+                target.style.borderColor = '#243040'
+                target.style.boxShadow = '0 4px 16px rgba(0,0,0,0.3)'
               }}
             >
+              <Select
+                value={role}
+                onChange={setRole}
+                options={ROLE_OPTIONS}
+                variant="borderless"
+                size="small"
+                popupMatchSelectWidth={false}
+                style={{ minWidth: 120, maxWidth: 150, fontSize: 13 }}
+              />
               <TextArea
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
@@ -552,10 +693,10 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
                 loading={isStreaming}
                 disabled={!inputValue.trim() || selectedDsIds.length === 0}
                 style={{
-                  borderRadius: 12, minWidth: 38, height: 38,
-                  background: (!inputValue.trim() || selectedDsIds.length === 0) ? '#d1d5db' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                  borderRadius: 8, minWidth: 38, height: 38,
+                  background: (!inputValue.trim() || selectedDsIds.length === 0) ? '#243040' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
                   border: 'none',
-                  boxShadow: (!inputValue.trim() || selectedDsIds.length === 0) ? 'none' : '0 2px 6px rgba(99,102,241,0.3)',
+                  boxShadow: (!inputValue.trim() || selectedDsIds.length === 0) ? 'none' : '0 2px 6px rgba(59,130,246,0.3)',
                 }}
               />
               {lastDoneMsg && (
@@ -565,7 +706,7 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
                     onClick={handleDownloadResult}
                     size="small"
                     type="text"
-                    style={{ color: '#9ca3af', borderRadius: 10 }}
+                    style={{ color: '#5b6674', borderRadius: 8 }}
                   />
                 </Tooltip>
               )}
@@ -577,7 +718,7 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
                     loading={isGeneratingReport}
                     size="small"
                     type="text"
-                    style={{ color: '#ef4444', borderRadius: 10 }}
+                    style={{ color: '#ef4444', borderRadius: 8 }}
                   />
                 </Tooltip>
               )}
@@ -589,7 +730,7 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
                     onClick={() => addTemplate(inputValue.trim())}
                     size="small"
                     type="text"
-                    style={{ color: '#f59e0b', borderRadius: 10 }}
+                    style={{ color: '#d4af37', borderRadius: 8 }}
                   />
                 </Tooltip>
               )}
@@ -603,7 +744,7 @@ function ChatContainer({ dataSources, prefilledDsId, prefilledQuestion }: Props)
                     }}
                     size="small"
                     type="text"
-                    style={{ color: '#f59e0b', borderRadius: 10 }}
+                    style={{ color: '#d4af37', borderRadius: 8 }}
                   />
                 </Tooltip>
               )}
@@ -635,7 +776,7 @@ function TableConfirmModal({
     <Modal
       title={
         <Space>
-          <ExclamationCircleOutlined style={{ color: '#faad14' }} />
+          <ExclamationCircleOutlined style={{ color: '#d4af37' }} />
           <span>关联数据表确认</span>
         </Space>
       }
@@ -671,8 +812,8 @@ function TableConfirmModal({
                 <div
                   key={c.id}
                   style={{
-                    border: '1px solid #e5e7eb',
-                    borderRadius: 8,
+                    border: '1px solid #243040',
+                    borderRadius: 6,
                     padding: 10,
                     marginBottom: 8,
                     cursor: 'pointer',
@@ -683,9 +824,9 @@ function TableConfirmModal({
                     <Tag color={(c.purpose || '').includes('订单') ? 'green' : (c.purpose || '').includes('客户') ? 'orange' : 'blue'} style={{ marginLeft: 6, fontSize: 11 }}>
                       {c.purpose || '通用数据'}
                     </Tag>
-                    <span style={{ color: '#9ca3af', fontSize: 11, marginLeft: 4 }}>{c.row_count} 行</span>
+                    <span style={{ color: '#5b6674', fontSize: 11, marginLeft: 4 }}>{c.row_count} 行</span>
                   </Checkbox>
-                  <div style={{ marginTop: 4, marginLeft: 24, fontSize: 11, color: '#8c8c8c' }}>
+                  <div style={{ marginTop: 4, marginLeft: 24, fontSize: 11, color: '#8b96a3' }}>
                     {(c.columns || []).slice(0, 5).map((col, i) => (
                       <Tag key={i} style={{ fontSize: 10 }}>{col.name}</Tag>
                     ))}

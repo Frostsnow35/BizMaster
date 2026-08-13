@@ -245,7 +245,7 @@ export function useChat() {
 
   // 发送消息
   const sendMessage = useCallback(
-    (content: string, dataSourceId: string, joinDataSourceIds?: string[], reformat?: OutputFormat) => {
+    (content: string, dataSourceId: string, joinDataSourceIds?: string[], role?: string, reformat?: OutputFormat) => {
       const userMsg = createMessage({ role: 'user', content })
       addMessage(userMsg)
 
@@ -281,6 +281,9 @@ export function useChat() {
           }
           if (joinDataSourceIds && joinDataSourceIds.length > 0) {
             payload.join_data_source_ids = joinDataSourceIds
+          }
+          if (role) {
+            payload.role_key = role
           }
           wsRef.current.send(JSON.stringify(payload))
         } else if (sendAttempts < MAX_SEND_ATTEMPTS) {

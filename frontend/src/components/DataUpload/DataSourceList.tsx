@@ -95,7 +95,7 @@ function DataSourceList({ dataSources, loading, onDelete }: Props) {
       ellipsis: true,
       render: (name: string, record) => (
         <Space>
-          <FileTextOutlined style={{ color: '#6366f1' }} />
+          <FileTextOutlined style={{ color: '#3b82f6' }} />
           <span>{name}</span>
           {fileTag(record.file_type)}
           {record.platform && PLATFORM_LABELS[record.platform] && (
@@ -127,7 +127,7 @@ function DataSourceList({ dataSources, loading, onDelete }: Props) {
       dataIndex: 'file_size_kb',
       key: 'file_size_kb',
       width: 80,
-      render: (kb: number) => <span style={{ color: '#9ca3af', fontSize: 12 }}>{formatSize(kb)}</span>,
+      render: (kb: number) => <span style={{ color: '#5b6674', fontSize: 12 }}>{formatSize(kb)}</span>,
     },
     {
       title: '字段',
@@ -135,7 +135,7 @@ function DataSourceList({ dataSources, loading, onDelete }: Props) {
       key: 'columns_meta',
       ellipsis: true,
       render: (cols: DataSourceInfo['columns_meta']) => {
-        if (!cols || cols.length === 0) return <span style={{ color: '#9ca3af' }}>暂无列信息</span>
+        if (!cols || cols.length === 0) return <span style={{ color: '#5b6674' }}>暂无列信息</span>
         const names = cols.map((c) => c.name)
         return (
           <Tooltip title={names.join('、')}>
@@ -248,7 +248,7 @@ function DataSourceList({ dataSources, loading, onDelete }: Props) {
               {/* 快捷分析问题 */}
               <div>
                 <Text strong style={{ fontSize: 13 }}>
-                  <ThunderboltOutlined style={{ color: '#6366f1', marginRight: 4 }} />
+                  <ThunderboltOutlined style={{ color: '#3b82f6', marginRight: 4 }} />
                   快捷分析：
                 </Text>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
@@ -259,19 +259,19 @@ function DataSourceList({ dataSources, loading, onDelete }: Props) {
                       type="default"
                       onClick={() => handleQuickAnalyze(record, q)}
                       style={{
-                        borderRadius: 16,
+                        borderRadius: 6,
                         fontSize: 12,
-                        borderColor: '#e5e7eb',
-                        color: '#4b5563',
+                        borderColor: '#243040',
+                        color: '#8b96a3',
                         transition: 'all 0.15s',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = '#6366f1'
-                        e.currentTarget.style.color = '#6366f1'
+                        e.currentTarget.style.borderColor = '#3b82f6'
+                        e.currentTarget.style.color = '#3b82f6'
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = '#e5e7eb'
-                        e.currentTarget.style.color = '#4b5563'
+                        e.currentTarget.style.borderColor = '#243040'
+                        e.currentTarget.style.color = '#8b96a3'
                       }}
                     >
                       {q}

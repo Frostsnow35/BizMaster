@@ -218,7 +218,7 @@ function UploadModal({ open, onClose, onSuccess }: Props) {
             <p className="ant-upload-hint">支持 CSV、Excel（.xlsx/.xls），单文件最大 100MB</p>
           </Dragger>
           {fileList.length > 0 && (
-            <div style={{ marginTop: 12, color: '#6b7280', fontSize: 12 }}>
+            <div style={{ marginTop: 12, color: '#8b96a3', fontSize: 12 }}>
               已选择 {fileList.length} 个文件
             </div>
           )}
@@ -226,7 +226,7 @@ function UploadModal({ open, onClose, onSuccess }: Props) {
       ) : (
         <div style={{ maxHeight: 400, overflowY: 'auto' }}>
           {tasks.map((task, i) => (
-            <div key={i} style={{ marginBottom: 16, padding: 12, background: '#f9fafb', borderRadius: 8 }}>
+            <div key={i} style={{ marginBottom: 16, padding: 12, background: '#111826', borderRadius: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 500 }}>
                   {task.file.name}
@@ -238,13 +238,13 @@ function UploadModal({ open, onClose, onSuccess }: Props) {
                 percent={task.progress}
                 size="small"
                 status={task.status === 'error' ? 'exception' : task.status === 'done' ? 'success' : 'active'}
-                strokeColor={task.status === 'cancelled' ? '#9ca3af' : undefined}
+                strokeColor={task.status === 'cancelled' ? '#5b6674' : undefined}
               />
               {(task.status === 'error' && task.errorMsg) && (
                 <Alert type="error" message={task.errorMsg} style={{ marginTop: 6 }} banner />
               )}
               {task.status === 'cancelled' && (
-                <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 4 }}>已取消</div>
+                <div style={{ color: '#5b6674', fontSize: 12, marginTop: 4 }}>已取消</div>
               )}
             </div>
           ))}

@@ -2,13 +2,17 @@
 @brief 图表生成工具
 
 根据数据和图表类型生成 ECharts option JSON，前端可直接渲染。
-支持折线图、柱状图、饼图、散点图。
+支持折线图、柱状图、饼图、散点图、矩形树图、指标卡、漏斗图、雷达图、热力图、瀑布图。
 """
 
 from typing import Dict, Any, Optional, List
 import re
 import pandas as pd
 from app.services.data_ingestion import read_datasource
+
+
+# 单一「分类列 + 数值列」语义的图表类型，共享同一套列推断与预处理逻辑
+_PIE_LIKE = ("pie", "treemap", "funnel", "radar", "waterfall")
 
 
 def _is_identifier_column(col_values) -> bool:
@@ -66,6 +70,20 @@ def _find_business_column(df: pd.DataFrame, exclude: Optional[str] = None) -> Op
     return best
 
 
+def _find_second_dimension(df: pd.DataFrame, exclude: Optional[str]) -> str:
+    """查找第二个维度列（热力图 Y 轴），优先与 exclude 不同的低基数文本列"""
+    for col in df.columns:
+        if str(col) == exclude:
+            continue
+        if _is_text_column(df, col) and not _is_identifier_column(df[col]):
+            return str(col)
+    # 兜底：任一不同于 exclude 的列
+    for col in df.columns:
+        if str(col) != exclude:
+            return str(col)
+    return str(df.columns[0])
+
+
 def visualization(
     data_source_id: str,
     chart_type: str,
@@ -85,11 +103,11 @@ def visualization(
     """
     @brief 图表生成工具入口
     @param data_source_id 数据源 ID
-    @param chart_type 图表类型: line / bar / pie / scatter / treemap / indicator
-    @param x X 轴列名（line/bar/scatter）
-    @param y Y 轴列名（line/bar/scatter）
-    @param category 分类列名（pie/treemap）
-    @param value 值列名（pie/treemap）
+    @param chart_type 图表类型: line / bar / pie / scatter / treemap / indicator / funnel / radar / heatmap / waterfall
+    @param x X 轴列名（line/bar/scatter/heatmap）
+    @param y Y 轴列名（line/bar/scatter/heatmap 第二维度）
+    @param category 分类列名（pie/treemap/funnel/radar/waterfall）
+    @param value 值列名（pie/treemap/funnel/radar/waterfall/heatmap）
     @param title 图表标题
     @param group_by 分组列（数据预处理）
     @param agg_method 聚合方法
@@ -102,19 +120,24 @@ def visualization(
     """
     df = read_datasource(data_source_id)
 
+    # 热力图需要二维交叉表，逻辑独立，提前路由避免通用预处理干扰
+    if chart_type == "heatmap":
+        option = _build_heatmap_chart(df, x, y, value, title)
+        return {"chart_type": chart_type, "echarts_option": option}
+
     # 确定分类列
-    if chart_type in ("pie", "treemap"):
+    if chart_type in _PIE_LIKE:
         check_cat_col = _lookup_column(df, category) if category else _infer_axis(df, "string")
     else:
         check_cat_col = _lookup_column(df, x) if x else _infer_axis(df, "string")
 
     # ── 标识符列自动纠错（所有图表类型）：分类列是标识符（如客户ID、订单号）时，自动切换为业务列 ──
-    if check_cat_col and chart_type in ("pie", "bar", "treemap", "line", "scatter"):
+    if check_cat_col and chart_type in ("pie", "bar", "treemap", "line", "scatter", "funnel", "radar", "waterfall"):
         raw_unique = df[str(check_cat_col)].nunique()
         if raw_unique > 30 and _is_identifier_column(df[str(check_cat_col)]):
             alt_col = _find_business_column(df, exclude=str(check_cat_col))
             if alt_col:
-                if chart_type in ("pie", "treemap"):
+                if chart_type in _PIE_LIKE:
                     category = alt_col
                 else:
                     x = alt_col
@@ -124,7 +147,7 @@ def visualization(
     if check_cat_col is None and chart_type != "indicator":
         check_cat_col = _find_business_column(df)
         if check_cat_col:
-            if chart_type in ("pie", "treemap"):
+            if chart_type in _PIE_LIKE:
                 category = check_cat_col
             else:
                 x = check_cat_col
@@ -153,7 +176,7 @@ def visualization(
 
     # ── 自动聚合：数据行数 > 20 且未指定 group_by 时，按标签列聚合求和 ──
     if not group_by and len(df) > 20:
-        if chart_type in ("pie", "treemap"):
+        if chart_type in _PIE_LIKE:
             auto_label = category or _infer_axis(df, "string")
             auto_val = value or _infer_axis(df, "number")
         else:
@@ -166,7 +189,7 @@ def visualization(
             df.columns = [str(lbl), str(vl)]
 
     # ── 通用去重：如果标签列仍有重复值，再聚合一次 ──
-    if chart_type in ("pie", "treemap"):
+    if chart_type in _PIE_LIKE:
         cat_col = category or _infer_axis(df, "string")
         val_col = value or _infer_axis(df, "number")
         actual_label = _lookup_column(df, cat_col)
@@ -215,7 +238,7 @@ def visualization(
         # xy 图表用 y 参数或推断的数值列
         if sort_col is None and chart_type in ("line", "bar", "scatter"):
             sort_col = _lookup_column(df, y) if y else actual_num
-        # pie/treemap 用推断的数值列
+        # pie-like 图表用推断的数值列
         if sort_col is None:
             sort_col = actual_num
         if sort_col:
@@ -228,10 +251,18 @@ def visualization(
         option = _build_pie_chart(df, category, value, title)
     elif chart_type == "treemap":
         option = _build_treemap_chart(df, category, value, title)
+    elif chart_type == "funnel":
+        option = _build_funnel_chart(df, category, value, title)
+    elif chart_type == "radar":
+        option = _build_radar_chart(df, category, value, title)
+    elif chart_type == "waterfall":
+        option = _build_waterfall_chart(df, category, value, title)
     elif chart_type == "indicator":
         option = _build_indicator_card(df, value, title, indicator_name, indicator_value)
     else:
-        raise ValueError(f"不支持的图表类型: {chart_type}，可用: line / bar / pie / scatter / treemap / indicator")
+        raise ValueError(
+            f"不支持的图表类型: {chart_type}，可用: line / bar / pie / scatter / treemap / indicator / funnel / radar / heatmap / waterfall"
+        )
 
     return {
         "chart_type": chart_type,
@@ -344,6 +375,197 @@ def _build_treemap_chart(
                     {"colorSaturation": [0.3, 0.45]},
                 ],
             }
+        ],
+    }
+
+    return option
+
+
+def _build_funnel_chart(
+    df: pd.DataFrame,
+    category: Optional[str],
+    value: Optional[str],
+    title: Optional[str],
+) -> Dict[str, Any]:
+    """构建漏斗图，展示转化/递减过程"""
+    actual_cat = _lookup_column(df, category) if category else None
+    if actual_cat is None:
+        actual_cat = _infer_axis(df, prefer="string")
+    actual_val = _lookup_column(df, value) if value else None
+    if actual_val is None:
+        actual_val = _infer_axis(df, prefer="number")
+
+    data = [
+        {"name": str(r[str(actual_cat)]), "value": float(r[str(actual_val)])}
+        for _, r in df.iterrows()
+        if pd.notna(r[str(actual_val)])
+    ]
+    data.sort(key=lambda x: x["value"], reverse=True)
+
+    option = {
+        "textStyle": {"fontFamily": "PingFang SC, Microsoft YaHei, sans-serif"},
+        "title": {"text": title or f"{actual_cat} 转化漏斗", "left": "center"},
+        "tooltip": {"trigger": "item", "formatter": "{b}: {c}"},
+        "series": [
+            {
+                "type": "funnel",
+                "left": "10%",
+                "top": 60,
+                "bottom": 60,
+                "width": "80%",
+                "sort": "descending",
+                "gap": 2,
+                "label": {"show": True, "position": "inside", "formatter": "{b}"},
+                "itemStyle": {"borderColor": "#1a2330", "borderWidth": 1},
+                "data": data,
+            }
+        ],
+    }
+
+    return option
+
+
+def _build_radar_chart(
+    df: pd.DataFrame,
+    category: Optional[str],
+    value: Optional[str],
+    title: Optional[str],
+) -> Dict[str, Any]:
+    """构建雷达图，展示单实体在多个维度上的画像"""
+    actual_cat = _lookup_column(df, category) if category else None
+    if actual_cat is None:
+        actual_cat = _infer_axis(df, prefer="string")
+    actual_val = _lookup_column(df, value) if value else None
+    if actual_val is None:
+        actual_val = _infer_axis(df, prefer="number")
+
+    rows = [
+        (str(r[str(actual_cat)]), float(r[str(actual_val)]))
+        for _, r in df.iterrows()
+        if pd.notna(r[str(actual_val)])
+    ]
+    if not rows:
+        rows = [("无数据", 0)]
+    max_val = max(v for _, v in rows) * 1.2 or 1
+
+    option = {
+        "textStyle": {"fontFamily": "PingFang SC, Microsoft YaHei, sans-serif"},
+        "title": {"text": title or f"{actual_cat} 多维度画像", "left": "center"},
+        "tooltip": {},
+        "radar": {
+            "indicator": [{"name": name, "max": max_val} for name, _ in rows],
+        },
+        "series": [
+            {
+                "type": "radar",
+                "data": [{"value": [v for _, v in rows], "name": str(actual_val)}],
+                "areaStyle": {"opacity": 0.2},
+            }
+        ],
+    }
+
+    return option
+
+
+def _build_heatmap_chart(
+    df: pd.DataFrame,
+    x: Optional[str],
+    y: Optional[str],
+    value: Optional[str],
+    title: Optional[str],
+) -> Dict[str, Any]:
+    """构建热力图，展示两个维度交叉下的数值分布"""
+    actual_x = _lookup_column(df, x) if x else _infer_axis(df, prefer="string")
+    actual_y = _lookup_column(df, y) if y else _find_second_dimension(df, actual_x)
+    actual_val = _lookup_column(df, value) if value else _infer_axis(df, prefer="number")
+
+    # 交叉透视聚合
+    pivot = df.pivot_table(
+        index=str(actual_y),
+        columns=str(actual_x),
+        values=str(actual_val),
+        aggfunc="sum",
+    ).fillna(0)
+
+    x_data = [str(c) for c in pivot.columns]
+    y_data = [str(i) for i in pivot.index]
+    data = []
+    for yi in range(len(y_data)):
+        for xi in range(len(x_data)):
+            data.append([xi, yi, round(float(pivot.iloc[yi, xi]), 2)])
+
+    max_v = max((d[2] for d in data), default=1) or 1
+
+    option = {
+        "textStyle": {"fontFamily": "PingFang SC, Microsoft YaHei, sans-serif"},
+        "title": {"text": title or f"{actual_x} × {actual_y} 热力图", "left": "center"},
+        "tooltip": {"position": "top"},
+        "grid": {"left": 60, "bottom": 80},
+        "xAxis": {"type": "category", "data": x_data, "splitArea": {"show": True}},
+        "yAxis": {"type": "category", "data": y_data, "splitArea": {"show": True}},
+        "visualMap": {
+            "min": 0,
+            "max": max_v,
+            "calculable": True,
+            "orient": "horizontal",
+            "left": "center",
+            "bottom": 10,
+        },
+        "series": [{"type": "heatmap", "data": data}],
+    }
+
+    return option
+
+
+def _build_waterfall_chart(
+    df: pd.DataFrame,
+    category: Optional[str],
+    value: Optional[str],
+    title: Optional[str],
+) -> Dict[str, Any]:
+    """构建瀑布图，展示数值的累积增减过程（正值绿色、负值红色）"""
+    actual_cat = _lookup_column(df, category) if category else None
+    if actual_cat is None:
+        actual_cat = _infer_axis(df, prefer="string")
+    actual_val = _lookup_column(df, value) if value else None
+    if actual_val is None:
+        actual_val = _infer_axis(df, prefer="number")
+
+    items = [
+        (str(r[str(actual_cat)]), float(r[str(actual_val)]))
+        for _, r in df.iterrows()
+        if pd.notna(r[str(actual_val)])
+    ]
+
+    categories = [name for name, _ in items]
+    values = [v for _, v in items]
+
+    helper = []      # 透明基底，决定每根柱子的起点
+    series_data = []  # 增量柱（绝对高度 + 颜色）
+    total = 0
+    for v in values:
+        if v >= 0:
+            helper.append(total)
+            series_data.append({"value": v, "itemStyle": {"color": "#34d399"}})
+            total += v
+        else:
+            helper.append(total + v)
+            series_data.append({"value": -v, "itemStyle": {"color": "#ef4444"}})
+            total += v
+
+    option = {
+        "textStyle": {"fontFamily": "PingFang SC, Microsoft YaHei, sans-serif"},
+        "title": {"text": title or f"{actual_cat} 瀑布图", "left": "center"},
+        "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
+        "xAxis": {
+            "type": "category",
+            "data": categories,
+            "axisLabel": {"rotate": 30 if len(categories) > 6 else 0, "interval": 0},
+        },
+        "yAxis": {"type": "value"},
+        "series": [
+            {"name": "基底", "type": "bar", "stack": "total", "itemStyle": {"color": "transparent"}, "data": helper},
+            {"name": "变动", "type": "bar", "stack": "total", "data": series_data},
         ],
     }
 

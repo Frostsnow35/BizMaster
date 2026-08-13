@@ -63,7 +63,7 @@ function DataManagePage() {
         <div style={{ display: 'flex', gap: 8, flex: 1 }}>
           <Input
             placeholder="搜索数据源名称、字段名..."
-            prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
+            prefix={<SearchOutlined style={{ color: '#5b6674' }} />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             allowClear

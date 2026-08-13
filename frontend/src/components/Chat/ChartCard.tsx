@@ -13,15 +13,37 @@ interface Props {
  * @brief 确保 ECharts option 含有中文字体配置
  */
 function ensureFont(option: any): any {
+  const monoFont = 'JetBrains Mono, Consolas, "PingFang SC", "Microsoft YaHei", monospace'
+  const lightColor = '#dde3ea'
   if (!option || typeof option !== 'object') {
-    return { textStyle: { fontFamily: 'PingFang SC, Microsoft YaHei, sans-serif' } }
+    return { textStyle: { fontFamily: monoFont, color: lightColor } }
   }
   if (!option.textStyle) {
-    option = { textStyle: {}, ...option }
+    option.textStyle = {}
   }
   if (!option.textStyle.fontFamily) {
-    option.textStyle.fontFamily = 'PingFang SC, Microsoft YaHei, sans-serif'
+    option.textStyle.fontFamily = monoFont
   }
+  if (!option.textStyle.color) {
+    option.textStyle.color = lightColor
+  }
+  // 深色背景下标题、图例与坐标轴标签浅色适配
+  if (option.title && !option.title.textStyle) {
+    option.title.textStyle = { color: lightColor }
+  }
+  if (option.legend && !option.legend.textStyle) {
+    option.legend.textStyle = { color: lightColor }
+  }
+  const adaptAxis = (axis: any) => {
+    if (!axis) return
+    if (!axis.axisLabel) axis.axisLabel = {}
+    if (!axis.axisLabel.color) axis.axisLabel.color = '#8b96a3'
+    if (axis.nameTextStyle && !axis.nameTextStyle.color) {
+      axis.nameTextStyle.color = '#8b96a3'
+    }
+  }
+  adaptAxis(option.xAxis)
+  adaptAxis(option.yAxis)
   return option
 }
 
@@ -35,7 +57,6 @@ function ChartCard({ option, title, dataSourceId, onDrilldown }: Props) {
     chartRef.current = echarts
     if (onDrilldown) {
       echarts.on('click', (params: any) => {
-        // 饼图点击扇区，直角坐标系点击柱子/点
         if (params.name && params.value !== undefined) {
           const value = typeof params.value === 'number' ? params.value : parseFloat(params.value) || 0
           onDrilldown({
@@ -52,11 +73,11 @@ function ChartCard({ option, title, dataSourceId, onDrilldown }: Props) {
     <div
       style={{
         cursor: onDrilldown ? 'pointer' : 'default',
-        background: '#ffffff',
-        borderRadius: 10,
+        background: '#121a26',
+        borderRadius: 6,
         padding: 12,
         marginBottom: 12,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.35)',
       }}
     >
       <div onClick={() => setFullscreen(true)}>
@@ -66,11 +87,11 @@ function ChartCard({ option, title, dataSourceId, onDrilldown }: Props) {
           notMerge
           onChartReady={onChartReady}
         />
-        {title && <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 12, marginTop: 4 }}>{title}</div>}
+        {title && <div style={{ textAlign: 'center', color: '#6b7686', fontSize: 12, marginTop: 4 }}>{title}</div>}
       </div>
       {onDrilldown && (
         <div style={{ textAlign: 'center', marginTop: 4 }}>
-          <span style={{ fontSize: 11, color: '#b0b0b0' }}>点击图表元素查看明细数据</span>
+          <span style={{ fontSize: 11, color: '#6b7686' }}>点击图表元素查看明细数据</span>
         </div>
       )}
       <Modal open={fullscreen} onCancel={() => setFullscreen(false)} footer={null} width={900} title={title}>

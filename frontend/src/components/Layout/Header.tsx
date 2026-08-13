@@ -7,6 +7,8 @@ const { Title } = Typography
 
 const PAGE_TITLES: Record<string, string> = {
   '/chat': '智能分析',
+  '/dashboard': '数据看板',
+  '/forecast': '预测分析',
   '/data': '数据管理',
   '/settings': '系统设置',
 }
@@ -19,9 +21,9 @@ function Header() {
   return (
     <AntHeader
       style={{
-        background: '#ffffff',
+        background: '#0b0f14',
         padding: '0 28px',
-        borderBottom: '1px solid #f3f4f6',
+        borderBottom: '1px solid #263242',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -31,12 +33,12 @@ function Header() {
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <Logo size={32} />
-        <span style={{ fontSize: 15, fontWeight: 600, color: '#111827', letterSpacing: -0.3 }}>
+        <span style={{ fontSize: 15, fontWeight: 600, color: '#dde3ea', letterSpacing: -0.3 }}>
           {pageTitle || '掌柜 BizMaster'}
         </span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Tag style={{ margin: 0, borderRadius: 6, background: '#eef2ff', color: '#6366f1', border: 'none', fontSize: 11 }}>
+        <Tag style={{ margin: 0, borderRadius: 4, background: '#1a2330', color: '#d4af37', border: '1px solid #3a3a2a', fontSize: 11 }}>
           v0.1.0
         </Tag>
       </div>

@@ -27,3 +27,7 @@ data/
 backend/data/
 .env
 *.log
+
+# ── 构建缓存与冒烟测试产物 ──
+*.tsbuildinfo
+.smoke/

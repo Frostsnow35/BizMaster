@@ -13,17 +13,17 @@ interface Props {
 /* 示例问题列表 */
 const SAMPLE_QUESTIONS: { icon: React.ReactNode; title: string; question: string }[] = [
   {
-    icon: <RiseOutlined style={{ color: '#10b981' }} />,
+    icon: <RiseOutlined style={{ color: '#34d399' }} />,
     title: '销售趋势',
     question: '最近30天每日销售额趋势如何？按渠道拆分',
   },
   {
-    icon: <PieChartOutlined style={{ color: '#f59e0b' }} />,
+    icon: <PieChartOutlined style={{ color: '#d4af37' }} />,
     title: '品类分析',
     question: '各品类销售额占比是多少？哪个品类卖得最好？',
   },
   {
-    icon: <SwapOutlined style={{ color: '#6366f1' }} />,
+    icon: <SwapOutlined style={{ color: '#3b82f6' }} />,
     title: '对比分析',
     question: '对比淘宝和抖音渠道的客单价和退货率',
   },
@@ -81,17 +81,17 @@ function OnboardingGuide({ onDataSourceReady }: Props) {
             width: 72,
             height: 72,
             borderRadius: 20,
-            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+            background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 20px',
-            boxShadow: '0 8px 24px rgba(99,102,241,0.25)',
+            boxShadow: '0 8px 24px rgba(59,130,246,0.25)',
           }}
         >
           <ThunderboltOutlined style={{ fontSize: 36, color: '#fff' }} />
         </div>
-        <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
+        <Title level={3} style={{ margin: 0, fontWeight: 600, color: '#d5dbe3' }}>
           欢迎使用掌柜，电商经营数据分析
         </Title>
         <Text type="secondary" style={{ fontSize: 14, marginTop: 8, display: 'block' }}>
@@ -105,9 +105,9 @@ function OnboardingGuide({ onDataSourceReady }: Props) {
         <Card
           style={{
             marginBottom: 16,
-            borderRadius: 12,
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            borderRadius: 8,
+            border: '1px solid #243040',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
           }}
           styles={{ body: { padding: '20px 24px' } }}
         >
@@ -117,14 +117,14 @@ function OnboardingGuide({ onDataSourceReady }: Props) {
                 width: 40,
                 height: 40,
                 borderRadius: 10,
-                background: '#f0f5ff',
+                background: '#16233a',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
               }}
             >
-              <FireOutlined style={{ color: '#6366f1', fontSize: 20 }} />
+              <FireOutlined style={{ color: '#3b82f6', fontSize: 20 }} />
             </div>
             <div style={{ flex: 1 }}>
               <Text strong style={{ fontSize: 15 }}>快速体验</Text>
@@ -140,7 +140,7 @@ function OnboardingGuide({ onDataSourceReady }: Props) {
                   disabled={!!loadedDsId}
                   style={{
                     borderRadius: 8,
-                    background: loadedDsId ? '#d1d5db' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                    background: loadedDsId ? '#243040' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
                     border: 'none',
                   }}
                 >
@@ -154,9 +154,9 @@ function OnboardingGuide({ onDataSourceReady }: Props) {
         {/* 方案B: 上传自己的数据 */}
         <Card
           style={{
-            borderRadius: 12,
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            borderRadius: 8,
+            border: '1px solid #243040',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
           }}
           styles={{ body: { padding: '20px 24px' } }}
         >
@@ -166,14 +166,14 @@ function OnboardingGuide({ onDataSourceReady }: Props) {
                 width: 40,
                 height: 40,
                 borderRadius: 10,
-                background: '#fef3c7',
+                background: '#2a2414',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
               }}
             >
-              <UploadOutlined style={{ color: '#f59e0b', fontSize: 20 }} />
+              <UploadOutlined style={{ color: '#d4af37', fontSize: 20 }} />
             </div>
             <div style={{ flex: 1 }}>
               <Text strong style={{ fontSize: 15 }}>导入我的数据</Text>
@@ -205,11 +205,11 @@ function OnboardingGuide({ onDataSourceReady }: Props) {
                 style={{
                   cursor: 'pointer',
                   padding: '4px 12px',
-                  borderRadius: 8,
+                  borderRadius: 6,
                   fontSize: 12,
-                  border: '1px solid #e5e7eb',
-                  background: '#fafafa',
-                  color: '#6b7280',
+                  border: '1px solid #243040',
+                  background: '#111826',
+                  color: '#8b96a3',
                 }}
               >
                 {q.icon} {q.title}

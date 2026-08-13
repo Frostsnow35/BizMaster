@@ -75,6 +75,18 @@ app.include_router(analysis_router)
 from app.api.config import router as config_router
 app.include_router(config_router)
 
+from app.api.templates import router as templates_router
+app.include_router(templates_router)
+
+from app.api.schedules import router as schedules_router
+app.include_router(schedules_router)
+
+from app.api.dashboard import router as dashboard_router
+app.include_router(dashboard_router)
+
+from app.api.forecast import router as forecast_router
+app.include_router(forecast_router)
+
 
 if __name__ == "__main__":
     """

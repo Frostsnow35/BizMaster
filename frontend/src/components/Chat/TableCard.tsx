@@ -20,8 +20,10 @@ function TableCard({ columns, data }: Props) {
   }))
 
   return (
-    <div style={{ marginBottom: 12, background: '#ffffff', borderRadius: 10, padding: '0 4px',
-      boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+    <div style={{
+      marginBottom: 12, background: '#121a26', borderRadius: 6, padding: '0 4px',
+      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.35)',
+    }}>
       <Table
         columns={tableColumns}
         dataSource={data.map((row, i) => ({ ...row, key: i }))}

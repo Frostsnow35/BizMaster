@@ -6,6 +6,7 @@
  */
 
 import type { ChatMessage } from '../store/chatStore'
+import type { AnalysisReport, ReportChart, ReportTable } from '../api/types'
 
 /** 报告配置 */
 interface ReportConfig {
@@ -63,7 +64,7 @@ function buildReportHtml(
   .cover {
     text-align: center;
     padding: 60px 0 40px;
-    border-bottom: 2px solid #6366f1;
+    border-bottom: 2px solid #3b82f6;
     margin-bottom: 36px;
     page-break-after: always;
   }
@@ -75,7 +76,7 @@ function buildReportHtml(
   }
   .cover .subtitle {
     font-size: 15px;
-    color: #6366f1;
+    color: #3b82f6;
     margin-bottom: 24px;
   }
   .cover .meta {
@@ -91,17 +92,17 @@ function buildReportHtml(
     font-size: 17px;
     font-weight: 600;
     color: #111827;
-    border-left: 3px solid #6366f1;
+    border-left: 3px solid #3b82f6;
     padding-left: 10px;
     margin-bottom: 14px;
   }
   .question {
-    background: #f5f3ff;
+    background: #eff6ff;
     border-radius: 8px;
     padding: 10px 14px;
     margin-bottom: 12px;
     font-size: 13px;
-    color: #4c1d95;
+    color: #1d4ed8;
     font-weight: 500;
   }
   .answer {
@@ -269,6 +270,64 @@ function buildTablesSection(msg: ChatMessage): string {
 }
 
 /**
+ * @brief 将构建好的 HTML 渲染为 PDF 并下载
+ * @param html 报告 HTML 字符串
+ * @param fileName 下载文件名
+ */
+async function renderHtmlToPdf(html: string, fileName: string): Promise<void> {
+  const html2canvas = (await import('html2canvas')).default
+  const jsPDF = (await import('jspdf')).default
+
+  // 创建隐藏容器渲染 HTML
+  const container = document.createElement('div')
+  container.innerHTML = html
+  container.style.position = 'absolute'
+  container.style.left = '-9999px'
+  container.style.top = '0'
+  container.style.width = '750px'
+  container.style.background = '#ffffff'
+  document.body.appendChild(container)
+
+  try {
+    const canvas = await html2canvas(container, {
+      backgroundColor: '#ffffff',
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+    })
+
+    const imgData = canvas.toDataURL('image/png')
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    const pdfWidth = pdf.internal.pageSize.getWidth()
+    const pdfHeight = pdf.internal.pageSize.getHeight()
+    const imgHeight = (canvas.height * pdfWidth) / canvas.width
+
+    let heightLeft = imgHeight
+    let position = 0
+
+    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight)
+    heightLeft -= pdfHeight
+
+    while (heightLeft > 0) {
+      position = -(imgHeight - heightLeft)
+      pdf.addPage()
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight)
+      heightLeft -= pdfHeight
+    }
+
+    pdf.save(fileName)
+  } finally {
+    document.body.removeChild(container)
+  }
+}
+
+/** 默认 PDF 文件名 */
+function defaultFileName(): string {
+  return `电商分析报告_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.pdf`
+}
+
+/**
  * @brief 导出 PDF 报告
  * @param messages 完整的消息列表
  * @param config 报告配置
@@ -278,56 +337,215 @@ export async function exportPdfReport(
   config: ReportConfig = {},
 ): Promise<void> {
   try {
-    const html2canvas = (await import('html2canvas')).default
-    const jsPDF = (await import('jspdf')).default
-
     const html = buildReportHtml(messages, config)
-
-    // 创建隐藏容器渲染 HTML
-    const container = document.createElement('div')
-    container.innerHTML = html
-    container.style.position = 'absolute'
-    container.style.left = '-9999px'
-    container.style.top = '0'
-    container.style.width = '750px'
-    container.style.background = '#ffffff'
-    document.body.appendChild(container)
-
-    try {
-      const canvas = await html2canvas(container, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-      })
-
-      const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF('p', 'mm', 'a4')
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = pdf.internal.pageSize.getHeight()
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width
-
-      let heightLeft = imgHeight
-      let position = 0
-
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight)
-      heightLeft -= pdfHeight
-
-      while (heightLeft > 0) {
-        position = -(imgHeight - heightLeft)
-        pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight)
-        heightLeft -= pdfHeight
-      }
-
-      const fileName = `电商分析报告_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.pdf`
-      pdf.save(fileName)
-    } finally {
-      document.body.removeChild(container)
-    }
+    await renderHtmlToPdf(html, defaultFileName())
   } catch (e) {
     console.error('PDF 报告生成失败:', e)
+    throw new Error('报告生成失败：' + (e as Error).message)
+  }
+}
+
+/** 角色中文名映射 */
+const ROLE_LABELS: Record<string, string> = {
+  data_analyst: '数据分析师',
+  operations_analyst: '电商运营专家',
+  finance_analyst: '财务经营分析师',
+}
+
+/** 构建单个已保存报告的 HTML */
+function buildSingleReportHtml(report: AnalysisReport, config: ReportConfig): string {
+  const dateStr = config.date || new Date().toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  const title = report.title || '分析报告'
+  const source = config.dataSource || '未知数据源'
+  const roleText = ROLE_LABELS[report.role_key] || report.role_key || '数据分析师'
+  const charts: ReportChart[] = Array.isArray(report.charts) ? report.charts : []
+  const tables: ReportTable[] = Array.isArray(report.tables) ? report.tables : []
+
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", sans-serif;
+    color: #1f2937;
+    line-height: 1.75;
+    font-size: 13px;
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 40px 30px;
+  }
+  .cover {
+    text-align: center;
+    padding: 60px 0 40px;
+    border-bottom: 2px solid #d4af37;
+    margin-bottom: 36px;
+    page-break-after: always;
+  }
+  .cover h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 12px;
+  }
+  .cover .subtitle {
+    font-size: 15px;
+    color: #d4af37;
+    margin-bottom: 24px;
+  }
+  .cover .meta {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 2;
+  }
+  .section {
+    margin-bottom: 32px;
+    page-break-inside: avoid;
+  }
+  .section h2 {
+    font-size: 17px;
+    font-weight: 600;
+    color: #111827;
+    border-left: 3px solid #d4af37;
+    padding-left: 10px;
+    margin-bottom: 14px;
+  }
+  .answer {
+    color: #374151;
+    font-size: 13px;
+    line-height: 1.8;
+    margin-bottom: 6px;
+  }
+  .answer p { margin-bottom: 8px; }
+  .answer ul, .answer ol { padding-left: 20px; margin: 8px 0; }
+  .answer li { margin-bottom: 4px; }
+  .chart-placeholder {
+    background: #faf7ef;
+    border: 1px dashed #d4af37;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    color: #8a7a4a;
+    font-size: 12px;
+    margin: 12px 0;
+    page-break-inside: avoid;
+  }
+  .table-wrapper {
+    overflow-x: auto;
+    margin: 10px 0;
+    page-break-inside: avoid;
+  }
+  .table-wrapper table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12px;
+  }
+  .table-wrapper th {
+    background: #f3f4f6;
+    border-bottom: 2px solid #e5e7eb;
+    padding: 6px 10px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    white-space: nowrap;
+  }
+  .table-wrapper td {
+    border-bottom: 1px solid #f3f4f6;
+    padding: 5px 10px;
+    color: #4b5563;
+  }
+  .footer {
+    text-align: center;
+    color: #9ca3af;
+    font-size: 11px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 16px;
+    margin-top: 40px;
+  }
+</style>
+</head>
+<body>
+  <div class="cover">
+    <h1>${title}</h1>
+    <div class="subtitle">AI 智能分析报告</div>
+    <div class="meta">
+      分析角色：${roleText}<br>
+      数据来源：${source}<br>
+      生成时间：${dateStr}
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>分析结论</h2>
+    <div class="answer">${formatMarkdownToHtml(report.summary || '')}</div>
+  </div>
+
+  ${buildReportChartsSection(charts)}
+  ${buildReportTablesSection(tables)}
+
+  <div class="footer">
+    本报告由「掌柜 BizMaster」自动生成<br>
+    数据基于用户上传的 ${source}
+  </div>
+</body>
+</html>`
+}
+
+/** 构建已保存报告的图表标注区域 */
+function buildReportChartsSection(charts: ReportChart[]): string {
+  if (charts.length === 0) return ''
+  const items = charts
+    .map((chart) => {
+      const chartTitle =
+        chart.title || chart.echarts_option?.title?.text || chart.chart_type || '分析图表'
+      return `<div class="chart-placeholder">图表：${chartTitle}（${chart.chart_type || '未知类型'}）</div>`
+    })
+    .join('')
+  return `<div class="section"><h2>数据图表</h2>${items}</div>`
+}
+
+/** 构建已保存报告的表格区域 */
+function buildReportTablesSection(tables: ReportTable[]): string {
+  if (tables.length === 0) return ''
+  const htmls = tables
+    .map((table) => {
+      const columns = Array.isArray(table.columns) ? table.columns : []
+      const data = Array.isArray(table.data) ? table.data : []
+      if (columns.length === 0 || data.length === 0) return ''
+      const thead = `<tr>${columns.map((col) => `<th>${col}</th>`).join('')}</tr>`
+      const tbody = data
+        .slice(0, 20)
+        .map((row) => `<tr>${columns.map((col) => `<td>${row[col] ?? ''}</td>`).join('')}</tr>`)
+        .join('')
+      return `<div class="table-wrapper"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`
+    })
+    .join('')
+  return `<div class="section"><h2>数据明细</h2>${htmls}</div>`
+}
+
+/**
+ * @brief 从已保存报告导出 PDF
+ * @param report 已保存的分析报告
+ * @param config 报告配置
+ */
+export async function exportReportPdf(
+  report: AnalysisReport,
+  config: ReportConfig = {},
+): Promise<void> {
+  try {
+    const html = buildSingleReportHtml(report, config)
+    await renderHtmlToPdf(html, defaultFileName())
+  } catch (e) {
+    console.error('报告 PDF 生成失败:', e)
     throw new Error('报告生成失败：' + (e as Error).message)
   }
 }

@@ -11,6 +11,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 
 from app.agent.state import AgentState, AnalysisStep, format_context_for_prompt
 from app.agent.prompts.planner_prompt import PLANNER_SYSTEM_PROMPT
+from app.agent.roles import get_role
 from app.core.llm import get_llm
 
 
@@ -72,6 +73,16 @@ async def planner_node(state: AgentState) -> AgentState:
     context_memory = state.get("context_memory", [])
     ctx_text = format_context_for_prompt(context_memory)
     system_prompt = system_prompt.replace("{context_memory}", ctx_text if ctx_text else "（无，这是新对话的第一轮）")
+
+    # 注入角色规划提示词（多角色分析引擎）
+    role_key = state.get("role_key")
+    role = get_role(role_key)
+    if role and role.get("planner_hint"):
+        system_prompt += (
+            f"\n\n## 当前分析角色：{role['name']}\n"
+            f"{role['planner_hint']}\n"
+            f"该角色偏好的图表类型：{', '.join(role.get('chart_preferences', []))}。"
+        )
 
     messages = [
         {"role": "system", "content": system_prompt},
