@@ -15,12 +15,15 @@ from app.core.database import init_db
 async def lifespan(app: FastAPI):
     """
     @brief 应用生命周期管理
-    启动时初始化数据库，关闭时清理资源。
+    启动时初始化数据库并启动定时调度器，关闭时清理资源。
     """
     # 启动
     init_db()
+    from app.services.scheduler import start_scheduler, stop_scheduler
+    start_scheduler()
     yield
-    # 关闭（预留资源清理逻辑）
+    # 关闭
+    stop_scheduler()
 
 
 app = FastAPI(

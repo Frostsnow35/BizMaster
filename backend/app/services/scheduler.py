@@ -26,16 +26,42 @@ _FREQUENCY_INTERVALS = {
 }
 
 
+def _apply_time(dt: datetime, time_str: str) -> datetime:
+    """
+    @brief 将 HH:MM 时间应用到日期，解析失败时保持原值
+    @param dt 基准日期时间
+    @param time_str 时间字符串 HH:MM
+    @return 应用时间后的日期时间
+    """
+    try:
+        hour, minute = (int(x) for x in time_str.split(":")[:2])
+        return dt.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    except (ValueError, AttributeError):
+        return dt
+
+
 def _next_run_time(schedule: ReportSchedule) -> datetime:
     """
     @brief 计算任务下一次到期时间
     @param schedule 定时任务
-    @return 到期时间（未运行过则返回当前时间，立即执行）
+    @return 到期时间（未运行过且未指定具体时间则返回当前时间，立即执行）
     """
     interval = _FREQUENCY_INTERVALS.get(schedule.frequency, timedelta(days=1))
+    has_daily_time = schedule.time and schedule.frequency in ("daily", "weekly", "monthly")
+
     if schedule.last_run_at is None:
-        return datetime.now()
-    return schedule.last_run_at + interval
+        # 首次运行：未指定具体时间立即执行，否则等到当天/本周期该时刻
+        if not has_daily_time:
+            return datetime.now()
+        target = _apply_time(datetime.now(), schedule.time)
+        if target <= datetime.now():
+            target += interval
+        return target
+
+    base = schedule.last_run_at + interval
+    if has_daily_time:
+        base = _apply_time(base, schedule.time)
+    return base
 
 
 async def _run_due_schedules():
