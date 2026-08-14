@@ -21,6 +21,7 @@ class ConfigResponse(BaseModel):
     provider: str
     model: str
     api_key_masked: str  # 脱敏的 API Key
+    configured: bool  # 是否已配置可用的 API Key
 
 
 class ConfigSaveRequest(BaseModel):
@@ -68,6 +69,7 @@ async def get_config():
         provider=provider_name,
         model=model,
         api_key_masked=api_key_masked,
+        configured=bool(plain_key),
     )
 
 

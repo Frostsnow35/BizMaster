@@ -12,7 +12,9 @@ import pandas as pd
 import numpy as np
 
 from app.services.data_ingestion import read_datasource
-from app.services.dashboard import detect_field_roles
+from app.services.field_roles import detect_field_roles
+from app.core.database import SessionLocal
+from app.models.data_source import DataSource
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +35,14 @@ _METHOD_MAP = {
 _FREQ_MAP = {"D": "日", "W": "周", "M": "月"}
 
 
-def detect_forecast_fields(df: pd.DataFrame) -> Dict[str, Optional[str]]:
+def detect_forecast_fields(df: pd.DataFrame, column_mapping: Optional[Dict[str, str]] = None) -> Dict[str, Optional[str]]:
     """
     @brief 识别预测所需的日期列与数值指标列
     @param df DataFrame
+    @param column_mapping 列名映射（用户确认或平台匹配，可选）
     @return {"date", "amount", "order_id", "qty"} 角色到列名的映射
     """
-    roles = detect_field_roles(df)
+    roles = detect_field_roles(df, column_mapping)
     return {
         "date": roles.get("date"),
         "amount": roles.get("amount"),
@@ -137,6 +140,34 @@ def forecast_series(series: List[float], periods: int, method: str) -> List[floa
     # 销量/销售额/订单量不应为负，做下限截断
     pred = np.clip(pred, 0, None)
     return [round(float(v), 2) for v in pred]
+
+
+def _forecast_interval(series: List[float], predicted: List[float], method: str) -> tuple:
+    """
+    @brief 计算预测值的近似置信区间
+    @param series 历史数值序列
+    @param predicted 预测值序列
+    @param method 预测方法
+    @return (lower, upper) 两个列表，长度与 predicted 一致
+
+    线性回归用残差标准差，其余用历史序列标准差，取约 95% 置信区间（1.96σ）。
+    """
+    values = np.array([float(v) for v in series], dtype=float)
+    if len(values) == 0:
+        return [], []
+
+    if method == "linear" and len(values) >= 2:
+        x = np.arange(len(values))
+        slope, intercept = np.polyfit(x, values, 1)
+        fitted = slope * x + intercept
+        std = float(np.std(values - fitted))
+    else:
+        std = float(np.std(values))
+
+    margin = 1.96 * std
+    lower = [round(max(0.0, float(v) - margin), 2) for v in predicted]
+    upper = [round(float(v) + margin, 2) for v in predicted]
+    return lower, upper
 
 
 def _build_insight_context(
@@ -247,7 +278,17 @@ async def build_forecast(
     method_label = _METHOD_MAP.get(method, method)
 
     df = read_datasource(data_source_id)
-    fields = detect_forecast_fields(df)
+
+    column_mapping = None
+    db = SessionLocal()
+    try:
+        source = db.query(DataSource).filter(DataSource.id == data_source_id).first()
+        if source is not None:
+            column_mapping = source.column_mapping
+    finally:
+        db.close()
+
+    fields = detect_forecast_fields(df, column_mapping)
     date_col = fields.get("date")
     if date_col is None:
         raise ValueError("数据源缺少日期列，无法进行趋势预测")
@@ -271,11 +312,14 @@ async def build_forecast(
     predicted = forecast_series(historical_values, periods, method)
     if metric == "orders":
         predicted = [round(v) for v in predicted]
+    lower, upper = _forecast_interval(historical_values, predicted, method)
     future_dates = _future_dates(historical_dates[-1], periods, freq)
 
     dates = historical_dates + future_dates
     actual = historical_values + [None] * periods
     forecast = [None] * len(historical_values) + predicted
+    lower_series = [None] * len(historical_values) + lower
+    upper_series = [None] * len(historical_values) + upper
 
     insight = await generate_forecast_insight(
         metric_label, method_label, periods, historical_values, predicted,
@@ -292,5 +336,8 @@ async def build_forecast(
         "dates": dates,
         "actual": actual,
         "forecast": forecast,
+        "lower": lower_series,
+        "upper": upper_series,
+        "disclaimer": "预测结果基于历史数据的简单统计外推，仅供趋势参考，不构成经营决策的唯一依据。",
         "insight": insight,
     }

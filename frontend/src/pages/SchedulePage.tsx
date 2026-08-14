@@ -39,6 +39,7 @@ function SchedulePage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<ReportSchedule | null>(null)
   const [runningId, setRunningId] = useState<string | null>(null)
+  const [retryingId, setRetryingId] = useState<string | null>(null)
   const [form] = Form.useForm()
 
   const fetchSchedules = useCallback(async () => {
@@ -149,6 +150,19 @@ function SchedulePage() {
     }
   }
 
+  const handleRetryReport = async (report: AnalysisReport) => {
+    setRetryingId(report.id)
+    try {
+      await client.post(`/reports/${report.id}/retry`)
+      message.success('已重新生成报告')
+      fetchReports()
+    } catch (e: any) {
+      message.error(e?.response?.data?.detail || '重试失败')
+    } finally {
+      setRetryingId(null)
+    }
+  }
+
   const scheduleColumns: ColumnsType<ReportSchedule> = [
     { title: '任务名称', dataIndex: 'name', key: 'name', width: 160, ellipsis: true },
     {
@@ -250,11 +264,24 @@ function SchedulePage() {
     {
       title: '操作',
       key: 'actions',
-      width: 90,
+      width: 140,
       render: (_, record) => (
-        <Button type="link" size="small" icon={<FileTextOutlined />} onClick={() => navigate(`/reports/${record.id}`)}>
-          查看
-        </Button>
+        <Space size={0}>
+          <Button type="link" size="small" icon={<FileTextOutlined />} onClick={() => navigate(`/reports/${record.id}`)}>
+            查看
+          </Button>
+          {record.status === 'failed' && (
+            <Button
+              type="link"
+              size="small"
+              icon={<PlayCircleOutlined />}
+              loading={retryingId === record.id}
+              onClick={() => handleRetryReport(record)}
+            >
+              重试
+            </Button>
+          )}
+        </Space>
       ),
     },
   ]

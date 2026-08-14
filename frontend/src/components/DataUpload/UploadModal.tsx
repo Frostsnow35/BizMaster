@@ -11,6 +11,7 @@ interface Props {
   open: boolean
   onClose: () => void
   onSuccess: (result: UploadResponse) => void
+  onConfirmMapping?: (dataSourceId: string) => void
 }
 
 interface FileTask {
@@ -21,7 +22,7 @@ interface FileTask {
   result?: UploadResponse
 }
 
-function UploadModal({ open, onClose, onSuccess }: Props) {
+function UploadModal({ open, onClose, onSuccess, onConfirmMapping }: Props) {
   const [fileList, setFileList] = useState<UploadFile[]>([])
   const [tasks, setTasks] = useState<FileTask[]>([])
   const [uploading, setUploading] = useState(false)
@@ -136,6 +137,8 @@ function UploadModal({ open, onClose, onSuccess }: Props) {
     if (allDone === rawFiles.length) {
       reset()
       onClose()
+      const last = results[results.length - 1]
+      if (last && onConfirmMapping) onConfirmMapping(last.data_source_id)
     }
   }
 

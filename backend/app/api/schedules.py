@@ -190,3 +190,32 @@ async def get_report(report_id: str):
         return report.to_dict()
     finally:
         db.close()
+
+
+@router.post("/reports/{report_id}/retry")
+async def retry_report(report_id: str):
+    """
+    @brief 重试生成失败的定时报告
+    @param report_id 报告 ID
+    @return 重新生成后的报告
+    @throws HTTPException 404 如果报告不存在
+    """
+    db = SessionLocal()
+    try:
+        report = db.query(Report).filter(Report.id == report_id).first()
+        if report is None:
+            raise HTTPException(status_code=404, detail="报告不存在")
+        question = report.question or report.title
+        data_source_id = report.data_source_id
+        role_key = report.role_key or "auto"
+        schedule_id = report.schedule_id
+    finally:
+        db.close()
+
+    new_report = await generate_report(
+        question=question,
+        data_source_id=data_source_id,
+        role_key=role_key,
+        schedule_id=schedule_id,
+    )
+    return new_report.to_dict()

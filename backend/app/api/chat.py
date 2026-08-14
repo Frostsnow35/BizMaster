@@ -109,7 +109,6 @@ async def chat_websocket(websocket: WebSocket):
                     current_state["config"] = {"configurable": {"thread_id": session_id}}
 
                 current_state["data_source_id"] = data_source_id
-                current_state["role_key"] = role_key
 
                 try:
                     # 流式运行 Agent
@@ -124,6 +123,7 @@ async def chat_websocket(websocket: WebSocket):
                         context_memory=context_memory,
                         active_data_source_id=data_source_id,
                         join_data_source_ids=join_data_source_ids,
+                        role_key=role_key,
                     ):
                         event_type = event.get("type", "")
 

@@ -3,6 +3,7 @@ import { Button, Input, Select } from 'antd'
 import { UploadOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons'
 import UploadModal from '../components/DataUpload/UploadModal'
 import DataSourceList from '../components/DataUpload/DataSourceList'
+import FieldMappingModal from '../components/DataUpload/FieldMappingModal'
 import { useDataSources } from '../hooks/useDataSources'
 import type { UploadResponse, DataSourceInfo } from '../api/types'
 
@@ -29,6 +30,7 @@ function DataManagePage() {
   const [search, setSearch] = useState('')
   const [platformFilter, setPlatformFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
+  const [fieldMappingDsId, setFieldMappingDsId] = useState<string | null>(null)
   const { dataSources, loading, fetchDataSources, deleteDataSource } = useDataSources()
 
   const handleUploadSuccess = (_result: UploadResponse) => {
@@ -96,12 +98,24 @@ function DataManagePage() {
         dataSources={filteredData}
         loading={loading}
         onDelete={deleteDataSource}
+        onEditMapping={(ds) => setFieldMappingDsId(ds.id)}
       />
 
       <UploadModal
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
         onSuccess={handleUploadSuccess}
+        onConfirmMapping={(dsId) => setFieldMappingDsId(dsId)}
+      />
+
+      <FieldMappingModal
+        dataSourceId={fieldMappingDsId}
+        open={!!fieldMappingDsId}
+        onClose={() => setFieldMappingDsId(null)}
+        onSaved={() => {
+          setFieldMappingDsId(null)
+          fetchDataSources()
+        }}
       />
     </div>
   )

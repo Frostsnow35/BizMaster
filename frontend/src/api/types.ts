@@ -24,6 +24,27 @@ export interface ColumnMeta {
   null_ratio?: number
 }
 
+/** 字段映射角色 */
+export interface FieldMappingRole {
+  key: string
+  label: string
+}
+
+/** 字段映射建议响应 */
+export interface FieldMappingResponse {
+  columns: string[]
+  mapping: Record<string, string | null>
+  roles: FieldMappingRole[]
+}
+
+/** 系统配置响应 */
+export interface ConfigResponse {
+  provider: string
+  model: string
+  api_key_masked: string
+  configured: boolean
+}
+
 /** 上传响应 */
 export interface UploadResponse {
   data_source_id: string
@@ -160,5 +181,8 @@ export interface ForecastResponse {
   dates: string[]
   actual: (number | null)[]
   forecast: (number | null)[]
+  lower?: (number | null)[]
+  upper?: (number | null)[]
+  disclaimer?: string
   insight: ForecastInsight
 }

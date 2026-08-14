@@ -1,5 +1,5 @@
 import { Table, Button, Popconfirm, Space, Tag, message, Tooltip, Typography } from 'antd'
-import { DeleteOutlined, DownloadOutlined, FileTextOutlined, ThunderboltOutlined } from '@ant-design/icons'
+import { DeleteOutlined, DownloadOutlined, FileTextOutlined, ThunderboltOutlined, ApartmentOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import type { ColumnsType } from 'antd/es/table'
 import type { DataSourceInfo, ColumnMeta } from '../../api/types'
@@ -10,6 +10,7 @@ interface Props {
   dataSources: DataSourceInfo[]
   loading: boolean
   onDelete: (id: string) => Promise<void>
+  onEditMapping: (ds: DataSourceInfo) => void
 }
 
 /* 根据数据源列名动态生成快捷分析问题（与 ChatContainer 共享逻辑） */
@@ -58,7 +59,7 @@ const PLATFORM_LABELS: Record<string, { name: string; color: string }> = {
   generic: { name: '通用', color: '#8c8c8c' },
 }
 
-function DataSourceList({ dataSources, loading, onDelete }: Props) {
+function DataSourceList({ dataSources, loading, onDelete, onEditMapping }: Props) {
   const navigate = useNavigate()
 
   const handleDelete = async (id: string, name: string) => {
@@ -160,7 +161,7 @@ function DataSourceList({ dataSources, loading, onDelete }: Props) {
     {
       title: '操作',
       key: 'actions',
-      width: 200,
+      width: 260,
       render: (_, record) => (
         <Space size={0}>
           <Tooltip title="快速分析">
@@ -174,6 +175,16 @@ function DataSourceList({ dataSources, loading, onDelete }: Props) {
               }}
             >
               快速分析
+            </Button>
+          </Tooltip>
+          <Tooltip title="字段映射">
+            <Button
+              type="link"
+              icon={<ApartmentOutlined />}
+              size="small"
+              onClick={() => onEditMapping(record)}
+            >
+              字段映射
             </Button>
           </Tooltip>
           <Tooltip title="下载 CSV">

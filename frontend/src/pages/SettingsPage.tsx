@@ -130,7 +130,7 @@ function SettingsPage() {
         </div>
         <Divider style={{ margin: '8px 0 16px' }} />
         <div style={{ color: '#8b96a3', lineHeight: 1.8 }}>
-          掌柜 BizMaster v0.1.0，中小电商的一站式经营数据分析伙伴。
+          掌柜 BizMaster v0.1.1，中小电商的一站式经营数据分析伙伴。
         </div>
       </Card>
     </div>

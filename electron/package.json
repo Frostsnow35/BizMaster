@@ -1,6 +1,6 @@
 {
   "name": "bizmaster-electron",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "掌柜 BizMaster - 电商经营数据分析桌面应用",
   "author": "ecommerce-data-agent",
   "main": "main.js",

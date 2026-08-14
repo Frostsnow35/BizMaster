@@ -4,7 +4,7 @@ analysis:
 app:
   debug: false
   name: 掌柜 BizMaster
-  version: 0.1.0
+  version: 0.1.1
 chromadb:
   persist_path: data/chroma
 database:

@@ -58,12 +58,63 @@ function ForecastPage() {
     }
   }
 
-  /* 由预测响应构建实际值 + 预测值双线趋势图 */
+  /* 由预测响应构建实际值 + 预测值双线趋势图（含置信区间） */
   const chartOption = useMemo(() => {
     if (!result) return null
+    const hasBand = Array.isArray(result.lower) && Array.isArray(result.upper)
+
+    const series: any[] = [
+      {
+        name: '实际值',
+        type: 'line',
+        data: result.actual,
+        smooth: true,
+        showSymbol: false,
+        itemStyle: { color: '#6366f1' },
+      },
+      {
+        name: '预测值',
+        type: 'line',
+        data: result.forecast,
+        smooth: true,
+        showSymbol: false,
+        lineStyle: { type: 'dashed' },
+        itemStyle: { color: '#d4af37' },
+      },
+    ]
+
+    if (hasBand) {
+      const lower = result.lower as (number | null)[]
+      const upper = result.upper as (number | null)[]
+      const band = upper.map((u, i) =>
+        u != null && lower[i] != null ? (u - (lower[i] as number)) : null,
+      )
+      series.push(
+        {
+          name: '置信区间',
+          type: 'line',
+          data: lower,
+          stack: 'confidence',
+          lineStyle: { opacity: 0 },
+          symbol: 'none',
+          silent: true,
+        },
+        {
+          name: '置信区间',
+          type: 'line',
+          data: band,
+          stack: 'confidence',
+          lineStyle: { opacity: 0 },
+          symbol: 'none',
+          silent: true,
+          areaStyle: { color: 'rgba(212,175,55,0.12)' },
+        },
+      )
+    }
+
     return {
       tooltip: { trigger: 'axis' },
-      legend: { data: ['实际值', '预测值'], bottom: 0 },
+      legend: { data: hasBand ? ['实际值', '预测值', '置信区间'] : ['实际值', '预测值'], bottom: 0 },
       grid: { left: 60, right: 30, top: 40, bottom: 50 },
       xAxis: {
         type: 'category',
@@ -75,25 +126,7 @@ function ForecastPage() {
         name: result.metric_label,
         nameTextStyle: { color: '#8b96a3' },
       },
-      series: [
-        {
-          name: '实际值',
-          type: 'line',
-          data: result.actual,
-          smooth: true,
-          showSymbol: false,
-          itemStyle: { color: '#6366f1' },
-        },
-        {
-          name: '预测值',
-          type: 'line',
-          data: result.forecast,
-          smooth: true,
-          showSymbol: false,
-          lineStyle: { type: 'dashed' },
-          itemStyle: { color: '#d4af37' },
-        },
-      ],
+      series,
     }
   }, [result])
 
@@ -165,6 +198,12 @@ function ForecastPage() {
               option={chartOption}
               title={`${result.metric_label}趋势预测（未来 ${result.periods} ${result.freq_label}）`}
             />
+          )}
+
+          {result.disclaimer && (
+            <div style={{ marginTop: 12, color: '#5b6674', fontSize: 12, lineHeight: 1.6 }}>
+              {result.disclaimer}
+            </div>
           )}
         </>
       )}

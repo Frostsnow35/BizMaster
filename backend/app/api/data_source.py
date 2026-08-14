@@ -11,11 +11,18 @@ import io
 import csv
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 import pandas as pd
 
 from app.core.database import SessionLocal
 from app.models.data_source import DataSource
-from app.services.data_ingestion import delete_datasource, read_datasource, infer_purpose
+from app.services.data_ingestion import (
+    delete_datasource,
+    read_datasource,
+    infer_purpose,
+    _cache_invalidate,
+)
+from app.services.field_roles import FIELD_ROLES, suggest_field_mapping
 
 router = APIRouter(prefix="/api", tags=["data-sources"])
 
@@ -73,6 +80,66 @@ async def remove_data_source(data_source_id: str):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"message": "删除成功"}
+
+
+@router.get("/data-sources/{data_source_id}/field-mapping")
+async def get_field_mapping(data_source_id: str):
+    """
+    @brief 获取字段映射建议（供上传后确认与数据管理编辑使用）
+    @param data_source_id 数据源 ID
+    @return {"columns": [str], "mapping": {列名: 角色键或 null}, "roles": [{key,label}]}
+    @throws HTTPException 404 如果数据源不存在
+    """
+    db = SessionLocal()
+    try:
+        source = db.query(DataSource).filter(DataSource.id == data_source_id).first()
+        if source is None:
+            raise HTTPException(status_code=404, detail="数据源不存在")
+        column_mapping = source.column_mapping
+    finally:
+        db.close()
+
+    df = read_datasource(data_source_id)
+    columns = [str(c) for c in df.columns]
+    suggested = suggest_field_mapping(df, column_mapping)
+
+    mapping = {col: suggested.get(col) for col in columns}
+    roles = [{"key": r["key"], "label": r["label"]} for r in FIELD_ROLES]
+    return {"columns": columns, "mapping": mapping, "roles": roles}
+
+
+class FieldMappingUpdate(BaseModel):
+    """字段映射更新请求体"""
+    mapping: dict = Field(description="{列名: 角色键或 null}")
+
+
+@router.put("/data-sources/{data_source_id}/field-mapping")
+async def update_field_mapping(data_source_id: str, req: FieldMappingUpdate):
+    """
+    @brief 保存字段映射（用户确认后的列角色）
+    @param data_source_id 数据源 ID
+    @param req 映射 {列名: 角色键或 null}
+    @return 更新后的数据源信息
+    @throws HTTPException 404 如果数据源不存在
+    """
+    db = SessionLocal()
+    try:
+        source = db.query(DataSource).filter(DataSource.id == data_source_id).first()
+        if source is None:
+            raise HTTPException(status_code=404, detail="数据源不存在")
+
+        column_mapping = {}
+        for col, role_key in req.mapping.items():
+            if role_key:
+                column_mapping[str(col)] = role_key
+        source.column_mapping = column_mapping
+        db.commit()
+        result = source.to_dict()
+    finally:
+        db.close()
+
+    _cache_invalidate(data_source_id)
+    return result
 
 
 @router.get("/export/{data_source_id}")

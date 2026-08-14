@@ -73,7 +73,6 @@ async def _run_due_schedules():
         now = datetime.now()
         for s in schedules:
             if _next_run_time(s) <= now:
-                s.last_run_at = now
                 due_schedules.append(
                     {
                         "id": s.id,
@@ -82,8 +81,6 @@ async def _run_due_schedules():
                         "role_key": s.role_key or "auto",
                     }
                 )
-        if due_schedules:
-            db.commit()
     except Exception as e:
         db.rollback()
         logger.error(f"调度扫描失败: {e}")
@@ -101,7 +98,22 @@ async def _run_due_schedules():
             )
             logger.info(f"定时报告已生成: {item['id']} - {item['question'][:20]}")
         except Exception as e:
+            # 生成过程异常时不推进 last_run_at，下一轮重试
             logger.error(f"定时报告生成失败: {item['id']} - {e}")
+            continue
+
+        # 仅成功后推进 last_run_at，避免失败任务被静默跳过
+        db = SessionLocal()
+        try:
+            schedule = db.query(ReportSchedule).filter(ReportSchedule.id == item["id"]).first()
+            if schedule is not None:
+                schedule.last_run_at = datetime.now()
+                db.commit()
+        except Exception as e:
+            db.rollback()
+            logger.error(f"更新任务运行时间失败: {item['id']} - {e}")
+        finally:
+            db.close()
 
 
 async def scheduler_loop():
